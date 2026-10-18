@@ -1,0 +1,2128 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        try {
+          var _nativeFetch = window.fetch;
+          var _customFetch = null;
+          var _fetchHandler = function() {
+            var target = _customFetch || _nativeFetch;
+            return target.apply(window, arguments);
+          };
+
+          var desc = {
+            configurable: true,
+            enumerable: true,
+            get: function() {
+              return _customFetch || _fetchHandler;
+            },
+            set: function(val) {
+              _customFetch = val;
+            }
+          };
+
+          try { Object.defineProperty(window, 'fetch', desc); } catch(e) {}
+          try {
+            if (typeof Window !== 'undefined' && Window.prototype) {
+              Object.defineProperty(Window.prototype, 'fetch', desc);
+            }
+          } catch(e) {}
+        } catch(err) {}
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sacred Glyph — Professional ASCII & Dither Workstation</title>
+    <meta name="description" content="Professional 90s Japanese ASCII & Dithering Video/GIF Workstation with curated unique glyph sets, manual character input, 16 master presets, GIF import/export, and real-time LFO modulation." />
+
+    <!-- Typography: 90s Industrial Monospace & Gothic Blackletter Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800;900&family=MedievalSharp&family=Pirata+One&family=Share+Tech+Mono&family=UnifrakturCook:wght@700&family=UnifrakturMaguntia&family=VT323&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/fonts/cs-denisa.css" />
+
+    <style>
+      :root {
+        /* Industrial Japanese Workstation Palette (90s SGI / Sony Broadcast) - Light Theme */
+        --chassis-bg: #b8b8aa;
+        --chassis-light: #deded2;
+        --chassis-dark: #6e6e64;
+        --chassis-darker: #42423c;
+        --chassis-shadow: #262622;
+        --panel-face: #c4c4b6;
+        --panel-face-hover: #d2d2c6;
+        --panel-recess: #1e201c;
+        --bezel-dark: #282a26;
+        --crt-screen-bg: #070907;
+        --vfd-green: #00ff66;
+        --vfd-green-dim: #008833;
+        --vfd-green-glow: rgba(0, 255, 102, 0.45);
+        --led-amber: #ff9900;
+        --led-red: #ff3322;
+        --led-blue: #00e5ff;
+        --text-ink: #161714;
+        --text-dim: #4e5046;
+        --text-light: #f4f4ec;
+        --body-outer-bg: #242521;
+        --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+        --font-tech: 'Share Tech Mono', 'JetBrains Mono', monospace;
+        --font-vfd: 'VT323', 'JetBrains Mono', monospace;
+        --font-gothic: 'UnifrakturMaguntia', 'Grenze Gotisch', 'Pirata One', serif;
+      }
+
+      /* Dark Theme (Obsidian Industrial / Cyber Unix Workstation) */
+      body[data-theme="dark"] {
+        --chassis-bg: #151614;
+        --chassis-light: #3a3c34;
+        --chassis-dark: #0e0f0c;
+        --chassis-darker: #080907;
+        --chassis-shadow: #040403;
+        --panel-face: #22241e;
+        --panel-face-hover: #2e3028;
+        --panel-recess: #0a0b08;
+        --bezel-dark: #121310;
+        --crt-screen-bg: #040604;
+        --text-ink: #e8eae0;
+        --text-dim: #9aa092;
+        --text-light: #ffffff;
+        --body-outer-bg: #0d0e0b;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      html, body {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background-color: var(--body-outer-bg);
+        color: var(--text-ink);
+        font-family: var(--font-tech);
+        font-size: 15px;
+        line-height: 1.35;
+        user-select: none;
+      }
+
+      /* Custom Industrial Scrollbars */
+      ::-webkit-scrollbar {
+        width: 9px;
+        height: 9px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #181916;
+        border: 1px solid var(--chassis-dark);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--panel-face);
+        border: 2px outset var(--chassis-light);
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--panel-face-hover);
+      }
+
+      /* 16:9 Fullscreen Widescreen Frame */
+      .workstation-frame {
+        width: 100vw;
+        height: 100vh;
+        background: var(--chassis-bg);
+        display: grid;
+        grid-template-rows: 48px 1fr 225px;
+        gap: 6px;
+        padding: 6px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Screws & Louvers */
+      .chassis-screw {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #e2e2d8, #6f6f65 85%);
+        box-shadow: inset 0 1px 1px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.4);
+        position: relative;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+      .chassis-screw::after {
+        content: '';
+        position: absolute;
+        top: 5.5px;
+        left: 2.5px;
+        width: 7px;
+        height: 1px;
+        background: #33332c;
+      }
+
+      .vent-grill {
+        height: 14px;
+        background: repeating-linear-gradient(
+          to bottom,
+          #383832 0px,
+          #383832 2px,
+          #8a8a7e 2px,
+          #8a8a7e 4px
+        );
+        border: 1px solid var(--chassis-dark);
+        border-bottom-color: var(--chassis-light);
+        border-right-color: var(--chassis-light);
+      }
+
+      /* ==============================================================
+         HEADER / UPPER CHASSIS BAR
+      ============================================================== */
+      .chassis-header {
+        background: var(--panel-face);
+        border: 2px outset var(--chassis-light);
+        padding: 0 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        box-shadow: inset 1px 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.3);
+      }
+
+      .header-brand-block {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-sacred-glyph {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        background: var(--panel-face);
+        border: 2px inset var(--chassis-dark);
+        box-shadow: inset 1px 1px 2px rgba(0,0,0,0.35);
+        user-select: none;
+        cursor: crosshair;
+        position: relative;
+        overflow: hidden;
+        height: 54px;
+        width: 560px;
+        max-width: 44vw;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .brand-sacred-glyph:hover {
+        border-color: var(--vfd-green-dim);
+        box-shadow: inset 1px 1px 2px rgba(0,0,0,0.45), 0 0 10px var(--vfd-green-glow);
+      }
+      #brand-canvas {
+        display: block;
+        width: 560px;
+        height: 54px;
+        pointer-events: none;
+      }
+
+      .header-preset-bay {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      /* Tactile Hardware Buttons */
+      .hw-btn {
+        background: var(--panel-face);
+        border: 2px outset var(--chassis-light);
+        color: var(--text-ink);
+        font-family: var(--font-tech);
+        font-size: 14px;
+        font-weight: 800;
+        padding: 6px 14px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+        transition: all 0.05s ease;
+        text-transform: uppercase;
+      }
+      .hw-btn:hover {
+        background: var(--panel-face-hover);
+      }
+      .hw-btn:active, .hw-btn.active {
+        border-style: inset;
+        transform: translate(1px, 1px);
+        box-shadow: none;
+      }
+      .hw-btn-green {
+        background: #0f3d1e;
+        color: #00ff66;
+        border-color: #2ebd58;
+      }
+      .hw-btn-green:hover { background: #15542a; }
+      .hw-btn-amber {
+        background: #472b04;
+        color: #ffaa00;
+        border-color: #e68a00;
+      }
+      .hw-btn-amber:hover { background: #5c3805; }
+      .hw-btn-red {
+        background: #470f0f;
+        color: #ff6655;
+        border-color: #cc3322;
+      }
+      .hw-btn-red:hover { background: #611515; }
+
+      .hw-led {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #3a3b34;
+        border: 1px solid #1a1b16;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);
+        display: inline-block;
+        flex-shrink: 0;
+      }
+      .hw-led.active-green {
+        background: var(--vfd-green);
+        box-shadow: 0 0 8px var(--vfd-green-glow);
+      }
+      .hw-led.active-amber {
+        background: var(--led-amber);
+        box-shadow: 0 0 8px rgba(255, 153, 0, 0.7);
+      }
+      .hw-led.active-red {
+        background: var(--led-red);
+        box-shadow: 0 0 8px rgba(255, 51, 34, 0.7);
+      }
+
+      /* Hardware Select & Inputs */
+      .hardware-select {
+        background: #141512;
+        color: var(--vfd-green);
+        border: 2px inset var(--chassis-dark);
+        font-family: var(--font-mono);
+        font-size: 14px;
+        font-weight: 700;
+        padding: 5px 10px;
+        outline: none;
+        cursor: pointer;
+      }
+      .hardware-select option {
+        background: #181916;
+        color: #e4e4dc;
+      }
+
+      .vfd-readout-box {
+        background: #080c08;
+        border: 2px inset #2a2c26;
+        color: var(--vfd-green);
+        font-family: var(--font-vfd);
+        font-size: 22px;
+        letter-spacing: 0.08em;
+        padding: 2px 8px;
+        text-shadow: 0 0 6px var(--vfd-green-glow);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 65px;
+      }
+
+      .vfd-label {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--text-dim);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      /* ==============================================================
+         MAIN BODY DECK (DUAL-CONSOLE: CRT & ANALOG RACK)
+      ============================================================== */
+      .workstation-body {
+        display: grid;
+        grid-template-columns: 1fr 430px;
+        gap: 6px;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      /* --------------------------------------------------------------
+         LEFT CONSOLE: PRIMARY CRT MONITOR UNIT
+      -------------------------------------------------------------- */
+      .crt-monitor-unit {
+        background: var(--panel-face);
+        border: 2px outset var(--chassis-light);
+        display: flex;
+        flex-direction: column;
+        padding: 6px;
+        gap: 6px;
+        overflow: hidden;
+      }
+
+      .module-title-bar {
+        background: rgba(0,0,0,0.14);
+        border: 1px solid var(--chassis-dark);
+        border-bottom-color: var(--chassis-light);
+        border-right-color: var(--chassis-light);
+        padding: 5px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+      }
+
+      .crt-chassis-bezel {
+        flex: 1;
+        background: var(--bezel-dark);
+        border: 6px solid #20221e;
+        border-top-color: #2e302a;
+        border-left-color: #2e302a;
+        border-bottom-color: #121310;
+        border-right-color: #121310;
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        box-shadow: inset 0 0 14px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.5);
+        overflow: hidden;
+      }
+
+      .crt-screen-well {
+        flex: 1;
+        background: var(--crt-screen-bg);
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 0 24px rgba(0,0,0,0.95);
+        user-select: none;
+      }
+
+      /* CRT Phosphor Screen Overlay */
+      .crt-screen-well::before {
+        content: " ";
+        display: block;
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.28) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+        background-size: 100% 3px, 6px 100%;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      /* Subtle Screen Vignette */
+      .crt-screen-well::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        box-shadow: inset 0 0 60px rgba(0,0,0,0.85);
+        pointer-events: none;
+        z-index: 11;
+      }
+
+      #ascii-canvas {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        image-rendering: pixelated;
+        display: block;
+        transform-origin: center center;
+        will-change: transform;
+      }
+
+      /* CRT HUD Overlay */
+      .crt-hud-overlay {
+        position: absolute;
+        top: 8px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 700;
+        color: rgba(0, 255, 102, 0.85);
+        text-shadow: 0 0 6px var(--vfd-green-glow);
+        pointer-events: none;
+        z-index: 12;
+      }
+
+      /* CRT Floating Controls */
+      .crt-bezel-controls {
+        position: absolute;
+        bottom: 8px;
+        right: 12px;
+        display: flex;
+        gap: 6px;
+        z-index: 15;
+      }
+      .crt-ctrl-btn {
+        background: rgba(20, 22, 18, 0.85);
+        border: 1px solid var(--chassis-dark);
+        color: var(--vfd-green);
+        font-family: var(--font-mono);
+        font-size: 14px;
+        font-weight: 700;
+        width: 30px;
+        height: 26px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .crt-ctrl-btn:hover {
+        background: #00ff66;
+        color: #000;
+      }
+      .crt-ctrl-btn.active {
+        background: var(--vfd-green);
+        color: #000;
+      }
+
+      /* Drag & Drop Overlay inside CRT */
+      .drop-zone-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(6, 12, 6, 0.92);
+        border: 3px dashed var(--vfd-green);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: var(--vfd-green);
+        z-index: 20;
+      }
+      .drop-zone-overlay.visible {
+        display: flex;
+      }
+
+      /* --------------------------------------------------------------
+         RIGHT CONSOLE: ANALOG SIGNAL RACK & MODULATOR UNIT
+      -------------------------------------------------------------- */
+      .analog-rack-unit {
+        background: var(--panel-face);
+        border: 2px outset var(--chassis-light);
+        display: flex;
+        flex-direction: column;
+        padding: 6px;
+        gap: 6px;
+        overflow-y: auto;
+      }
+
+      .waveform-monitor-card {
+        background: #181916;
+        border: 2px inset var(--chassis-dark);
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .secondary-crt-frame {
+        background: #040804;
+        border: 2px inset #0f1c10;
+        border-radius: 4px;
+        padding: 4px;
+        position: relative;
+        overflow: hidden;
+      }
+      .oscillo-canvas {
+        width: 100%;
+        height: 70px;
+        display: block;
+      }
+      .scope-hud-bar {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--vfd-green);
+        margin-top: 2px;
+      }
+
+      /* Animation Transport Card in Right Console */
+      .anim-transport-card {
+        background: #181916;
+        border: 2px inset var(--chassis-dark);
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .anim-transport-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+      }
+
+      .rack-panel-box {
+        background: #181916;
+        border: 2px inset var(--chassis-dark);
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      /* 3-Way Color Wheels & Grading Console */
+      .color-grading-card {
+        background: #181916;
+        border: 2px inset var(--chassis-dark);
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .color-wheels-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+      .color-wheel-box {
+        background: #0d0f0c;
+        border: 1px solid var(--chassis-dark);
+        border-radius: 4px;
+        padding: 6px 4px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      .color-wheel-header {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--vfd-green);
+        letter-spacing: 0.05em;
+      }
+      .color-wheel-canvas {
+        width: 74px;
+        height: 74px;
+        border-radius: 50%;
+        cursor: crosshair;
+        background: #111;
+        box-shadow: 0 0 6px rgba(0, 255, 102, 0.2);
+        border: 1px solid #333;
+        touch-action: none;
+      }
+      .wheel-btn-reset {
+        background: transparent;
+        border: 1px solid #333;
+        color: #888;
+        border-radius: 2px;
+        cursor: pointer;
+        font-size: 10px;
+        padding: 1px 4px;
+        line-height: 1;
+      }
+      .wheel-btn-reset:hover {
+        color: #fff;
+        border-color: #666;
+      }
+      .mod-chain-box {
+        background: #0d0f0c;
+        border: 1px solid #222920;
+        border-radius: 4px;
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      /* Potentiometer / Physical Fader Strips */
+      .fader-strip {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .fader-meta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .fader-name {
+        font-size: 13px;
+        font-weight: 800;
+        color: #d6d8ce;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      /* Physical Audio/Video Console Range Slider */
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 14px;
+        background: #0d0e0c;
+        border: 1px solid var(--chassis-dark);
+        border-bottom-color: var(--chassis-light);
+        border-right-color: var(--chassis-light);
+        outline: none;
+        cursor: pointer;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 22px;
+        height: 18px;
+        background: linear-gradient(to bottom, #dcdcd0 0%, #88887e 50%, #44443c 100%);
+        border: 1px solid #1a1a16;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.7);
+        cursor: pointer;
+        position: relative;
+      }
+      input[type="range"]::-webkit-slider-thumb::after {
+        content: '';
+        display: block;
+        width: 2px;
+        height: 10px;
+        background: #ffaa00;
+        margin: 4px auto;
+      }
+
+      .toggle-switch-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 22px;
+      }
+      .toggle-switch input { opacity: 0; width: 0; height: 0; }
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background-color: #1a1a16;
+        border: 1px solid var(--chassis-dark);
+        transition: 0.15s;
+      }
+      .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 2px;
+        bottom: 2px;
+        background-color: #deded2;
+        border: 1px solid #44443c;
+        transition: 0.15s;
+      }
+      input:checked + .toggle-slider {
+        background-color: #0b3818;
+      }
+      input:checked + .toggle-slider:before {
+        transform: translateX(22px);
+        background-color: var(--vfd-green);
+      }
+
+      /* Color Palettes Grid */
+      .palettes-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 5px;
+        max-height: 120px;
+        overflow-y: auto;
+        padding-right: 2px;
+      }
+      .palette-card {
+        background: #141512;
+        border: 2px outset var(--chassis-dark);
+        padding: 5px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .palette-card.active {
+        border-color: var(--vfd-green);
+        background: #1c221c;
+      }
+      .palette-name {
+        font-size: 12px;
+        font-weight: 700;
+        color: #e4e4dc;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .palette-strip {
+        display: flex;
+        height: 10px;
+        border: 1px solid #000;
+      }
+      .palette-swatch {
+        flex: 1;
+        height: 100%;
+      }
+
+      /* ==============================================================
+         LOWER ENGINEERING DECKS (2 MODULES: GLYPH BASE & CASSETTE BAY)
+      ============================================================== */
+      .workstation-lower-deck {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 6px;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      /* Deck 1: Expanded Glyph Base & Manual Input */
+      .deck-keypad-module {
+        background: var(--panel-face);
+        border: 2px outset var(--chassis-light);
+        display: flex;
+        flex-direction: column;
+        padding: 6px;
+        gap: 6px;
+        overflow: hidden;
+      }
+
+      .category-tabs {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+      .category-tab {
+        background: #141512;
+        border: 1px solid var(--chassis-dark);
+        color: #aaaab0;
+        font-family: var(--font-tech);
+        font-size: 13px;
+        font-weight: 800;
+        padding: 4px 10px;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .category-tab:hover { color: #ffffff; background: #22241f; }
+      .category-tab.active {
+        background: var(--vfd-green);
+        color: #000000;
+        border-color: var(--vfd-green);
+      }
+
+      .glyph-deck-split {
+        display: grid;
+        grid-template-columns: 310px 1fr;
+        gap: 8px;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .glyph-sets-container {
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding-right: 3px;
+      }
+
+      .glyph-set-card {
+        background: #141512;
+        border: 2px outset var(--chassis-dark);
+        padding: 6px 10px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .glyph-set-card:hover {
+        background: #1c1d18;
+      }
+      .glyph-set-card.active {
+        border-color: var(--vfd-green);
+        background: #122116;
+      }
+      .glyph-set-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .glyph-set-name {
+        font-size: 14px;
+        font-weight: 800;
+        color: #e4e4dc;
+      }
+      .glyph-set-count {
+        font-size: 12px;
+        color: var(--text-dim);
+        font-family: var(--font-mono);
+      }
+      .glyph-set-preview {
+        font-family: var(--font-mono);
+        font-size: 18px;
+        color: var(--vfd-green);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Manual Input Station & Interactive Character Ribbon */
+      .manual-input-station {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        background: #10120e;
+        border: 2px inset var(--chassis-dark);
+        padding: 8px;
+        overflow: hidden;
+      }
+
+      .manual-input-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .manual-glyph-input {
+        width: 100%;
+        background: #070906;
+        border: 2px solid var(--vfd-green);
+        color: var(--vfd-green);
+        font-family: var(--font-mono);
+        font-size: 17px;
+        font-weight: 800;
+        padding: 6px 12px;
+        outline: none;
+        letter-spacing: 0.12em;
+        box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.25);
+      }
+      .manual-glyph-input:focus {
+        border-color: #55ff99;
+        box-shadow: 0 0 10px var(--vfd-green-glow);
+      }
+
+      .manual-actions-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      /* Live Interactive Character Ribbon */
+      .glyph-ribbon {
+        flex: 1;
+        min-height: 48px;
+        background: #090a07;
+        border: 2px inset var(--chassis-dark);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        overflow-x: auto;
+      }
+      .glyph-ribbon-cell {
+        min-width: 38px;
+        height: 44px;
+        background: #141712;
+        border: 1px solid #2a3424;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.05s ease;
+      }
+      .glyph-ribbon-cell:hover {
+        border-color: var(--vfd-green);
+        transform: translateY(-2px);
+        background: #1c2419;
+      }
+      .glyph-char {
+        font-family: var(--font-mono);
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--vfd-green);
+        line-height: 1;
+      }
+      .glyph-idx {
+        font-size: 10px;
+        color: var(--text-dim);
+        font-family: var(--font-mono);
+      }
+
+      /* Deck 3: Cassette Bay Media Ingest */
+      .deck-ingest-module {
+        background: var(--panel-face);
+        border: 2px outset var(--chassis-light);
+        display: flex;
+        flex-direction: column;
+        padding: 6px;
+        gap: 6px;
+        overflow: hidden;
+      }
+
+      .cassette-door-slot {
+        flex: 1;
+        background: #141512;
+        border: 3px inset var(--chassis-dark);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 10px;
+        text-align: center;
+        box-shadow: inset 0 0 14px rgba(0,0,0,0.9);
+        transition: background 0.15s ease;
+      }
+      .cassette-door-slot:hover {
+        background: #1c1d18;
+      }
+      .cassette-door-slot:active {
+        border-style: solid;
+        border-color: var(--vfd-green);
+      }
+      .door-title {
+        font-size: 14px;
+        font-weight: 900;
+        color: var(--vfd-green);
+        letter-spacing: 0.08em;
+      }
+      .door-sub {
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+
+      /* Modals */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .modal-box {
+        background: var(--panel-face);
+        border: 3px outset var(--chassis-light);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.85);
+        width: 90%;
+        max-width: 580px;
+        display: flex;
+        flex-direction: column;
+      }
+      .modal-header {
+        background: #141512;
+        color: var(--vfd-green);
+        font-family: var(--font-mono);
+        font-size: 15px;
+        font-weight: 800;
+        padding: 8px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid var(--chassis-dark);
+      }
+      .modal-body {
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .modal-footer {
+        padding: 10px 14px;
+        background: rgba(0,0,0,0.1);
+        border-top: 1px solid var(--chassis-dark);
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      /* ==============================================================
+         WELCOME / PRE-INTERFACE INGEST MENU WINDOW
+      ============================================================== */
+      .welcome-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at center, rgba(16, 22, 16, 0.95) 0%, rgba(5, 7, 5, 0.98) 100%);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2500;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .welcome-modal-backdrop.hidden-menu {
+        opacity: 0;
+        pointer-events: none;
+        transform: scale(1.02);
+      }
+      .welcome-box {
+        background: var(--panel-face);
+        border: 4px outset var(--chassis-light);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95), 0 0 35px rgba(45, 230, 110, 0.25);
+        width: 92%;
+        max-width: 660px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        padding: 4px;
+        box-sizing: border-box;
+      }
+      .welcome-screw {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #deded0, #555548);
+        border: 1px solid #1c1d1a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: #1c1d1a;
+        font-family: var(--font-mono);
+        user-select: none;
+        box-shadow: inset 1px 1px 1px rgba(255,255,255,0.7), 1px 1px 3px rgba(0,0,0,0.6);
+        z-index: 3;
+      }
+      .welcome-screw.screw-tl { top: 6px; left: 6px; }
+      .welcome-screw.screw-tr { top: 6px; right: 6px; }
+      .welcome-screw.screw-bl { bottom: 6px; left: 6px; }
+      .welcome-screw.screw-br { bottom: 6px; right: 6px; }
+
+      .welcome-header {
+        background: #0d120d;
+        border: 2px inset var(--chassis-dark);
+        color: var(--vfd-green);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        padding: 8px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 14px 14px 0 14px;
+      }
+
+      .welcome-body {
+        padding: 24px 28px 22px 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 18px;
+      }
+
+      .welcome-brand-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .welcome-brand-title {
+        font-family: 'CS Denisa Halfpixel Top Demo', 'UnifrakturCook', 'UnifrakturMaguntia', serif;
+        font-size: 58px;
+        line-height: 1.15;
+        color: var(--vfd-green);
+        text-shadow: 0 0 18px var(--vfd-green-glow), 0 0 40px rgba(45, 230, 110, 0.45);
+        letter-spacing: 2px;
+        margin: 0;
+        user-select: none;
+      }
+
+      .welcome-brand-sub {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+      }
+
+      .welcome-drop-card {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        border: 2px dashed var(--vfd-green-dim);
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.7);
+        padding: 24px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        box-sizing: border-box;
+        transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      }
+      .welcome-drop-card:hover, .welcome-drop-card.drag-over {
+        border-color: var(--vfd-green);
+        background: rgba(45, 230, 110, 0.08);
+        box-shadow: inset 0 0 25px rgba(45, 230, 110, 0.2), 0 0 15px var(--vfd-green-glow);
+      }
+
+      .welcome-main-btn {
+        font-family: var(--font-mono);
+        font-size: 16px;
+        font-weight: 800;
+        padding: 15px 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        width: 100%;
+        max-width: 440px;
+        cursor: pointer;
+        letter-spacing: 1px;
+        border: 3px outset var(--vfd-green);
+        background: #0f1c0f;
+        color: var(--vfd-green);
+        box-shadow: 0 0 20px var(--vfd-green-glow), inset 0 0 10px rgba(45,230,110,0.25);
+        transition: all 0.15s ease;
+      }
+      .welcome-main-btn:hover {
+        background: var(--vfd-green);
+        color: #050b05;
+        box-shadow: 0 0 32px var(--vfd-green), inset 0 0 15px rgba(255,255,255,0.7);
+        transform: translateY(-1px);
+      }
+      .welcome-main-btn:active {
+        border-style: inset;
+        transform: translateY(1px);
+      }
+
+      .welcome-drop-hint {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text-dim);
+        line-height: 1.5;
+      }
+
+      .welcome-actions-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        width: 100%;
+      }
+
+      .welcome-skip-btn {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        padding: 8px 18px;
+        color: var(--text-ink);
+        background: var(--panel-face);
+        border: 2px outset var(--chassis-light);
+        cursor: pointer;
+      }
+      .welcome-skip-btn:hover {
+        border-color: var(--vfd-amber);
+        color: var(--vfd-amber);
+      }
+
+      /* System Toast */
+      .system-toast {
+        position: fixed;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #101510;
+        border: 2px solid var(--vfd-green);
+        color: var(--vfd-green);
+        font-family: var(--font-mono);
+        font-size: 14px;
+        font-weight: 700;
+        padding: 8px 18px;
+        box-shadow: 0 0 16px var(--vfd-green-glow);
+        z-index: 2000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+      .system-toast.visible {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body data-theme="light">
+    <!-- Widescreen 16:9 Fullscreen Chassis Frame -->
+    <div class="workstation-frame">
+      <!-- Upper Chassis Header -->
+      <header class="chassis-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button id="btn-open-welcome-menu" class="hw-btn hw-btn-green" title="Открыть стартовое меню (загрузка GIF/картинки)">
+            <span id="i18n-welcome-menu-btn">⏏ МЕНЮ</span>
+          </button>
+
+          <!-- Master Presets Bay -->
+          <div class="header-preset-bay">
+            <span class="vfd-label" id="i18n-preset-lbl">ПРЕСЕТ:</span>
+            <select id="preset-selector" class="hardware-select" style="min-width: 220px;">
+              <!-- Dynamically populated with 16 master presets -->
+            </select>
+            <button id="btn-save-preset-dialog" class="hw-btn" title="Сохранить текущие параметры в новый пресет">
+              СОХРАНИТЬ
+            </button>
+          </div>
+        </div>
+
+        <!-- Header Actions: Theme Switcher, Language Switcher, Standalone Download, Export -->
+        <div class="header-actions">
+          <button id="btn-toggle-theme" class="hw-btn" title="Переключить тему (Светлая / Темная)">
+            ◐ ТЕМА: СВЕТЛАЯ
+          </button>
+
+          <button id="btn-toggle-lang" class="hw-btn" title="Switch Language / Сменить язык">
+            🌐 RU / EN
+          </button>
+
+          <button id="btn-open-export" class="hw-btn hw-btn-green" title="Открыть экспорт">
+            ЭКСПОРТ
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Dual-Screen Engineering Deck -->
+      <div class="workstation-body">
+        <!-- ==============================================================
+             LEFT CONSOLE: PRIMARY CRT MONITOR (CANVAS WORKSPACE)
+        ============================================================== -->
+        <section class="crt-monitor-unit">
+          <div class="module-title-bar">
+            <span id="i18n-mon1">[МОНИТОР-1: ОСНОВНОЙ РАСТРОВЫЙ ДИСПЛЕЙ CRT // 8-BIT DAC]</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="vfd-label" id="i18n-fit-lbl">МАСШТАБ (FIT):</span>
+              <select id="select-fit-mode" class="hardware-select" title="Режим масштабирования изображения">
+                <option value="fit" selected>ПРОПОРЦИИ 1:1 (FIT)</option>
+                <option value="cover">ЗАПОЛНИТЬ (COVER)</option>
+                <option value="stretch">РАСТЯНУТЬ (STRETCH)</option>
+              </select>
+
+              <span class="vfd-label" id="i18n-source-lbl">ДЕМО-ИСТОЧНИК:</span>
+              <!-- Request 4: ONLY hermetic_sigil and abyssal_flame -->
+              <select id="demo-media-select" class="hardware-select">
+                <option value="hermetic_sigil" selected>ДЕМО 1: ГЕРМЕТИЧЕСКАЯ ПЕЧАТЬ (LFO АНИМАЦИЯ)</option>
+                <option value="abyssal_flame">ДЕМО 2: ПЛАМЯ БЕЗДНЫ (ЧАСТИЦЫ)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Heavy CRT Bezel & Screen Tube -->
+          <div class="crt-chassis-bezel">
+            <div class="crt-screen-well" id="canvas-container">
+              <!-- CRT Top Phosphor HUD -->
+              <div class="crt-hud-overlay">
+                <div>CH-A <strong>SIGNAL LOCK</strong></div>
+                <div><span id="hud-grid-lbl">СЕТКА:</span> <strong id="hud-grid-dim">0 × 0</strong></div>
+                <div><span id="hud-cells-lbl">ЯЧЕЙКИ:</span> <strong id="hud-total-cells">0</strong></div>
+                <div>FPS: <strong id="hud-fps">60</strong></div>
+                <div><span id="hud-zoom-lbl">МАСШТАБ:</span> <strong id="hud-zoom">100%</strong></div>
+                <div id="hud-lfo-indicator" style="display: none; color: var(--led-amber);">LFO: АКТИВЕН</div>
+              </div>
+
+              <!-- Main ASCII Output Canvas -->
+              <canvas id="ascii-canvas"></canvas>
+
+              <!-- Drop Zone Media Ingest -->
+              <div class="drop-zone-overlay" id="drop-zone-overlay">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                <div style="font-weight: 800; color: var(--vfd-green); font-size: 18px; letter-spacing: 0.1em;" id="i18n-drop-prompt">
+                  ЗАГРУЗИТЕ GIF ИЛИ ИЗОБРАЖЕНИЕ (DRAG &amp; DROP)
+                </div>
+                <div style="font-size: 14px; color: #a4a496;" id="i18n-drop-sub">
+                  ПОДДЕРЖКА АНИМИРОВАННЫХ GIF, PNG, JPG, WEBP, MP4
+                </div>
+              </div>
+
+              <!-- CRT Floating Bezel Controls -->
+              <div class="crt-bezel-controls">
+                <button id="btn-zoom-in" class="crt-ctrl-btn" title="Zoom In (+)">+</button>
+                <button id="btn-zoom-out" class="crt-ctrl-btn" title="Zoom Out (-)">-</button>
+                <button id="btn-zoom-reset" class="crt-ctrl-btn" title="Reset View (1:1)">1:1</button>
+                <button id="btn-toggle-grid" class="crt-ctrl-btn" title="Toggle Raster Gridlines">#</button>
+              </div>
+            </div>
+
+            <!-- Bezel Air Louvers -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span class="hw-led active-green"></span>
+                <span style="font-size: 12px; color: #88887e; font-family: var(--font-mono);">POWER / RASTER SYNC</span>
+              </div>
+              <div style="width: 220px;" class="vent-grill"></div>
+              <span style="font-size: 12px; color: #88887e; font-family: var(--font-mono);">RGB DAC MATRIX OUT</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==============================================================
+             RIGHT CONSOLE: SECONDARY CRT & ANALOG SIGNAL RACK
+        ============================================================== -->
+        <aside class="analog-rack-unit">
+          <!-- Top Right Secondary CRT / Modulation Scanner -->
+          <div class="waveform-monitor-card">
+            <div class="module-title-bar">
+              <span id="i18n-mon2">[МОНИТОР-2: МОДУЛЯЦИЯ СИГНАЛА LFO]</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-lfo" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="secondary-crt-frame">
+              <canvas id="oscillo-canvas" class="oscillo-canvas" width="380" height="70"></canvas>
+              <div class="scope-hud-bar">
+                <span id="scope-phase-lbl">ФАЗА: 0°..360°</span>
+                <span id="scope-sweep-lbl">РАЗВЕРТКА: 1ms/DIV</span>
+                <span>LUMA: 1.0 Vp-p</span>
+              </div>
+            </div>
+
+            <div id="lfo-controls" style="display: flex; flex-direction: column; gap: 6px;">
+              <!-- LFO 1 Primary Target & Waveform -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span class="vfd-label" id="i18n-target-lbl">ЦЕЛЬ LFO 1:</span>
+                  <select id="select-lfo-target" class="hardware-select">
+                    <option value="offset">СМЕЩЕНИЕ ГЛИФОВ</option>
+                    <option value="cell">РАЗМЕР ЯЧЕЙКИ</option>
+                    <option value="depth">ГЛУБИНА УРОВНЕЙ</option>
+                    <option value="both">СМЕЩЕНИЕ + ГЛУБИНА</option>
+                    <option value="contrast">КОНТРАСТ</option>
+                    <option value="brightness">ЯРКОСТЬ</option>
+                    <option value="gamma">ГАММА-КРИВАЯ</option>
+                    <option value="hue">ЦВЕТОВОЙ СПЕКТР (HUE)</option>
+                    <option value="temperature">ТЕМПЕРАТУРА (TEMP)</option>
+                    <option value="saturation">НАСЫЩЕННОСТЬ (SAT)</option>
+                    <option value="lift">ТЕНИ (LIFT LEVEL)</option>
+                    <option value="gain">СВЕТА (GAIN LEVEL)</option>
+                    <option value="rotation">ВРАЩЕНИЕ CRT</option>
+                    <option value="aspect">ПРОПОРЦИЯ</option>
+                    <option value="sharpness">РЕЗКОСТЬ</option>
+                    <option value="blur">РАЗМЫТИЕ</option>
+                  </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span class="vfd-label" id="i18n-wave-lbl">ФОРМА ВОЛНЫ:</span>
+                  <select id="select-lfo-waveform" class="hardware-select">
+                    <option value="sine">СИНУСОИДА (SINE)</option>
+                    <option value="triangle">ТРЕУГОЛЬНИК (TRI)</option>
+                    <option value="sawtooth_up">ПИЛА ВВЕРХ (RAMP UP)</option>
+                    <option value="sawtooth_down">ПИЛА ВНИЗ (RAMP DN)</option>
+                    <option value="square">МЕАНДР (SQUARE 50%)</option>
+                    <option value="pulse_narrow">ИМПУЛЬС (PULSE 20%)</option>
+                    <option value="sample_hold">SAMPLE &amp; HOLD (ГЛИТЧ)</option>
+                    <option value="smooth_random">ПЛАВНЫЙ ДРЕЙФ (ШУМ)</option>
+                    <option value="staircase">СТУПЕНИ (STAIR 5-ST)</option>
+                    <option value="exponential">ЭКСПОНЕНТА (BOUNCE)</option>
+                    <option value="chaos_lorenz">ХАОС ЛОРЕНЦА (CHAOS)</option>
+                    <option value="noise_perlin">ПЕРЛИН-ШУМ (PERLIN NOISE)</option>
+                    <option value="bipolar_burst">БЕРСТ-ИМПУЛЬСЫ (BURST TRAIN)</option>
+                    <option value="parabolic">ПАРАБОЛА (PARABOLIC)</option>
+                    <option value="harmonic_combo">ГАРМОНИКИ (HARMONIC 3X)</option>
+                    <option value="cardioid">КАРДИОИДА (HEART PULSE)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- LFO 1 Speed & Amplitude Faders -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <div class="fader-strip">
+                  <div class="fader-meta-row">
+                    <span class="fader-name" id="i18n-speed-lbl">СКОРОСТЬ LFO 1</span>
+                    <span class="vfd-readout-box" id="val-lfo-speed">1.0 CYC/S</span>
+                  </div>
+                  <input type="range" id="slider-lfo-speed" min="0.1" max="5.0" step="0.1" value="1.0" />
+                </div>
+                <div class="fader-strip">
+                  <div class="fader-meta-row">
+                    <span class="fader-name" id="i18n-amp-lbl">ГЛУБИНА LFO 1</span>
+                    <span class="vfd-readout-box" id="val-lfo-depth">25%</span>
+                  </div>
+                  <input type="range" id="slider-lfo-depth" min="5" max="100" step="5" value="25" />
+                </div>
+              </div>
+
+              <!-- Modulation Chain Box (LFO 2 / Cross-Modulation) -->
+              <div class="mod-chain-box">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="vfd-label" style="color: var(--led-amber);" id="i18n-chain-title">ЦЕПЬ МОДУЛЯЦИИ // LFO 2:</span>
+                  <label class="toggle-switch" style="width: 36px; height: 18px;">
+                    <input type="checkbox" id="toggle-lfo2" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div id="lfo2-controls" style="display: flex; flex-direction: column; gap: 4px; opacity: 0.35; pointer-events: none;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                      <span class="vfd-label" style="font-size: 10px;" id="i18n-chain-mode-lbl">РЕЖИМ СВЯЗИ:</span>
+                      <select id="select-lfo2-mode" class="hardware-select" style="font-size: 11px; padding: 3px 4px;">
+                        <option value="fm_rate" selected>FM: ЧАСТОТА LFO 1</option>
+                        <option value="am_depth">AM: ГЛУБИНА LFO 1</option>
+                        <option value="sum_additive">SUM: СЛОЖЕНИЕ ВОЛН</option>
+                        <option value="ring_mod">RING: КОЛЬЦЕВАЯ МОД.</option>
+                        <option value="phase_mod">PM: ФАЗОВАЯ МОД.</option>
+                        <option value="sample_track">GATE: ТРЕК &amp; ХОЛД</option>
+                        <option value="chaos_feedback">FB: ХАОС ФИДБЕК</option>
+                        <option value="cross_target">DUAL: ВТОРАЯ ЦЕЛЬ</option>
+                      </select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                      <span class="vfd-label" style="font-size: 10px;" id="i18n-lfo2-wave-lbl">ФОРМА LFO 2:</span>
+                      <select id="select-lfo2-waveform" class="hardware-select" style="font-size: 11px; padding: 3px 4px;">
+                        <option value="triangle" selected>ТРЕУГОЛЬНИК</option>
+                        <option value="sine">СИНУСОИДА</option>
+                        <option value="sawtooth_up">ПИЛА ВВЕРХ</option>
+                        <option value="sawtooth_down">ПИЛА ВНИЗ</option>
+                        <option value="square">МЕАНДР</option>
+                        <option value="pulse_narrow">УЗКИЙ ИМПУЛЬС</option>
+                        <option value="sample_hold">SAMPLE &amp; HOLD</option>
+                        <option value="smooth_random">ПЛАВНЫЙ ДРЕЙФ</option>
+                        <option value="staircase">СТУПЕНИ</option>
+                        <option value="exponential">ЭКСПОНЕНТА</option>
+                        <option value="chaos_lorenz">ХАОС ЛОРЕНЦА</option>
+                        <option value="noise_perlin">ПЕРЛИН-ШУМ</option>
+                        <option value="bipolar_burst">БЕРСТ-ИМПУЛЬСЫ</option>
+                        <option value="parabolic">ПАРАБОЛА</option>
+                        <option value="harmonic_combo">ГАРМОНИКИ</option>
+                        <option value="cardioid">КАРДИОИДА</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="lfo2-target-row" style="display: none; flex-direction: column; gap: 2px;">
+                    <span class="vfd-label" style="font-size: 10px;" id="i18n-lfo2-target-lbl">ВТОРАЯ ЦЕЛЬ (TARGET 2):</span>
+                    <select id="select-lfo2-target" class="hardware-select" style="font-size: 11px; padding: 3px 4px;">
+                      <option value="hue" selected>ЦВЕТОВОЙ СПЕКТР (HUE)</option>
+                      <option value="temperature">ТЕМПЕРАТУРА (TEMP)</option>
+                      <option value="saturation">НАСЫЩЕННОСТЬ (SAT)</option>
+                      <option value="lift">ТЕНИ (LIFT)</option>
+                      <option value="gain">СВЕТА (GAIN)</option>
+                      <option value="rotation">ВРАЩЕНИЕ CRT</option>
+                      <option value="contrast">КОНТРАСТ</option>
+                      <option value="brightness">ЯРКОСТЬ</option>
+                      <option value="gamma">ГАММА-КРИВАЯ</option>
+                      <option value="aspect">ПРОПОРЦИЯ</option>
+                      <option value="sharpness">РЕЗКОСТЬ</option>
+                      <option value="blur">РАЗМЫТИЕ</option>
+                      <option value="cell">РАЗМЕР ЯЧЕЙКИ</option>
+                      <option value="depth">ГЛУБИНА</option>
+                      <option value="offset">СМЕЩЕНИЕ</option>
+                    </select>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                    <div class="fader-strip">
+                      <div class="fader-meta-row">
+                        <span class="fader-name" style="font-size: 11px;" id="i18n-speed2-lbl">СКОРОСТЬ 2</span>
+                        <span class="vfd-readout-box" id="val-lfo2-speed" style="font-size: 11px;">0.5 CYC/S</span>
+                      </div>
+                      <input type="range" id="slider-lfo2-speed" min="0.05" max="5.0" step="0.05" value="0.5" />
+                    </div>
+                    <div class="fader-strip">
+                      <div class="fader-meta-row">
+                        <span class="fader-name" style="font-size: 11px;" id="i18n-amp2-lbl">ГЛУБИНА 2</span>
+                        <span class="vfd-readout-box" id="val-lfo2-depth" style="font-size: 11px;">30%</span>
+                      </div>
+                      <input type="range" id="slider-lfo2-depth" min="5" max="100" step="5" value="30" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Animation & Playback Deck (Moved into Rack Console) -->
+          <div class="anim-transport-card">
+            <div class="module-title-bar">
+              <span id="i18n-anim-title">[УПРАВЛЕНИЕ АНИМАЦИЕЙ &amp; КАДРЫ]</span>
+              <span class="vfd-readout-box" id="video-timecode" style="font-size: 15px; padding: 2px 6px; min-width: auto;">LIVE</span>
+            </div>
+
+            <div class="anim-transport-row">
+              <button id="btn-play-pause" class="hw-btn hw-btn-green" title="Старт / Пауза">
+                <svg id="play-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                <svg id="pause-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16"/>
+                  <rect x="14" y="4" width="4" height="16"/>
+                </svg>
+                <span id="i18n-play-btn">СТАРТ</span>
+              </button>
+
+              <button id="btn-loop-video" class="hw-btn active" title="Зациклить воспроизведение">
+                <span id="i18n-loop-btn">ПОВТОР</span>
+              </button>
+
+              <button id="btn-step-prev" class="hw-btn" title="Предыдущий кадр" style="padding: 6px 8px;">◀</button>
+              <button id="btn-step-next" class="hw-btn" title="Следующий кадр" style="padding: 6px 8px;">▶</button>
+
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span class="vfd-label" style="font-size: 11px;" id="i18n-speed-anim-lbl">СКОР:</span>
+                <select id="select-playback-speed" class="hardware-select" style="padding: 4px 6px; font-size: 12px;">
+                  <option value="0.25">0.25×</option>
+                  <option value="0.5">0.5×</option>
+                  <option value="1.0" selected>1.0×</option>
+                  <option value="1.5">1.5×</option>
+                  <option value="2.0">2.0×</option>
+                  <option value="4.0">4.0×</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Channel Faders Strip (Grid, Image & Dither Controls) -->
+          <div class="rack-panel-box">
+            <!-- Fader 1: Cell Size -->
+            <div class="fader-strip">
+              <div class="fader-meta-row">
+                <span class="fader-name" id="i18n-cell-lbl">РАЗМЕР ЯЧЕЙКИ (CELL)</span>
+                <span class="vfd-readout-box" id="val-cell-size">9 px</span>
+              </div>
+              <input type="range" id="slider-cell-size" min="1" max="40" step="1" value="9" />
+              <div style="display: flex; gap: 4px; margin-top: 4px; justify-content: space-between;">
+                <button type="button" class="btn-quick-cell hardware-btn" data-size="1" style="flex: 1; padding: 2px 0; font-size: 8px; letter-spacing: 0;">1px ULTRA</button>
+                <button type="button" class="btn-quick-cell hardware-btn" data-size="2" style="flex: 1; padding: 2px 0; font-size: 8px; letter-spacing: 0;">2px HIGH</button>
+                <button type="button" class="btn-quick-cell hardware-btn" data-size="4" style="flex: 1; padding: 2px 0; font-size: 8px; letter-spacing: 0;">4px</button>
+                <button type="button" class="btn-quick-cell hardware-btn" data-size="8" style="flex: 1; padding: 2px 0; font-size: 8px; letter-spacing: 0;">8px</button>
+                <button type="button" class="btn-quick-cell hardware-btn" data-size="14" style="flex: 1; padding: 2px 0; font-size: 8px; letter-spacing: 0;">14px</button>
+              </div>
+            </div>
+
+            <!-- Fader 2: Character Depth -->
+            <div class="fader-strip">
+              <div class="fader-meta-row">
+                <span class="fader-name" id="i18n-depth-lbl">ГЛУБИНА (DEPTH)</span>
+                <span class="vfd-readout-box" id="val-depth">8 levels</span>
+              </div>
+              <input type="range" id="slider-depth" min="2" max="64" step="1" value="8" />
+            </div>
+
+            <!-- Fader 3: Character Offset -->
+            <div class="fader-strip">
+              <div class="fader-meta-row">
+                <span class="fader-name" id="i18n-offset-lbl">СМЕЩЕНИЕ (OFFSET)</span>
+                <span class="vfd-readout-box" id="val-offset">0</span>
+              </div>
+              <input type="range" id="slider-offset" min="-100" max="100" step="1" value="0" />
+            </div>
+
+            <!-- Fader 4: Aspect Ratio & Invert Toggle -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" id="i18n-aspect-lbl">ПРОПОРЦИЯ</span>
+                  <span class="vfd-readout-box" id="val-aspect">0.55</span>
+                </div>
+                <input type="range" id="slider-aspect" min="0.4" max="1.2" step="0.05" value="0.55" />
+              </div>
+              <div class="toggle-switch-row">
+                <span class="fader-name" id="i18n-invert-lbl">ИНВЕРСИЯ</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toggle-invert" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Extended Settings: Sharpness & Gamma (Request 5) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" id="i18n-sharp-lbl">РЕЗКОСТЬ (КОНТУР)</span>
+                  <span class="vfd-readout-box" id="val-sharpness">25%</span>
+                </div>
+                <input type="range" id="slider-sharpness" min="0" max="100" step="5" value="25" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" id="i18n-gamma-lbl">ГАММА-КРИВАЯ</span>
+                  <span class="vfd-readout-box" id="val-gamma">1.00</span>
+                </div>
+                <input type="range" id="slider-gamma" min="0.5" max="2.5" step="0.05" value="1.0" />
+              </div>
+            </div>
+
+            <!-- Extended Settings: Blur & Posterize (Request 5) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" id="i18n-blur-lbl">СГЛАЖИВАНИЕ</span>
+                  <span class="vfd-readout-box" id="val-blur">0 px</span>
+                </div>
+                <input type="range" id="slider-blur" min="0" max="6" step="1" value="0" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" id="i18n-poster-lbl">ПОСТЕРИЗАЦИЯ</span>
+                  <span class="vfd-readout-box" id="val-posterize">OFF</span>
+                </div>
+                <input type="range" id="slider-posterize" min="0" max="32" step="2" value="0" />
+              </div>
+            </div>
+
+            <!-- Geometry & CRT Scanlines Toolbar -->
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; padding-top: 2px;">
+              <button id="btn-rotate-cw" class="hw-btn" title="Повернуть на 90 градусов">
+                ↷ <span id="i18n-rotate-lbl">90°</span>
+              </button>
+              <button id="btn-flip-h" class="hw-btn" title="Отразить по горизонтали">
+                ⇄ <span id="i18n-fliph-lbl">FLIP H</span>
+              </button>
+              <button id="btn-flip-v" class="hw-btn" title="Отразить по вертикали">
+                ⇅ <span id="i18n-flipv-lbl">FLIP V</span>
+              </button>
+              <div class="toggle-switch-row" style="gap: 4px;">
+                <span class="fader-name" style="font-size: 11px;" id="i18n-scanlines-lbl">ЭЛТ ЛИНИИ</span>
+                <label class="toggle-switch" style="width: 36px; height: 18px;">
+                  <input type="checkbox" id="toggle-scanlines" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Dither Boy Algorithm Selection -->
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span class="fader-name" id="i18n-dither-lbl">АЛГОРИТМ:</span>
+              <select id="select-dither-algo" class="hardware-select">
+                <option value="none">БЕЗ ДИЗЕРИНГА (КВАНТОВАНИЕ)</option>
+                <option value="floyd">FLOYD-STEINBERG (ДИФФУЗИЯ ОШИБКИ)</option>
+                <option value="bayer4" selected>BAYER 4×4 (УПОРЯДОЧЕННЫЙ)</option>
+                <option value="bayer8">BAYER 8×8 (ТОНКИЙ МАТРИЧНЫЙ)</option>
+                <option value="atkinson">ATKINSON (ЧЕТКИЙ MACINTOSH)</option>
+                <option value="halftone">HALFTONE DOT (РАСТРОВАЯ ТОЧКА)</option>
+              </select>
+            </div>
+
+            <!-- Contrast & Brightness -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" id="i18n-contrast-lbl">КОНТРАСТ</span>
+                  <span class="vfd-readout-box" id="val-contrast">1.25×</span>
+                </div>
+                <input type="range" id="slider-contrast" min="0.5" max="3.0" step="0.1" value="1.25" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" id="i18n-bright-lbl">ЯРКОСТЬ</span>
+                  <span class="vfd-readout-box" id="val-brightness">0%</span>
+                </div>
+                <input type="range" id="slider-brightness" min="-100" max="100" step="2" value="0" />
+              </div>
+            </div>
+
+            <!-- Color Mode & Palettes -->
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span class="fader-name" id="i18n-color-lbl">РЕЖИМ ОКРАСКИ:</span>
+                <label style="display: flex; align-items: center; gap: 5px; font-size: 12px;">
+                  <span id="i18n-trans-lbl">ПРОЗРАЧНЫЙ ФОН:</span>
+                  <input type="checkbox" id="toggle-bg-transparent" />
+                </label>
+              </div>
+              <select id="select-color-mode" class="hardware-select">
+                <option value="palette">ПАЛИТРА (4-8 ЦВЕТОВ)</option>
+                <option value="single">МОНОХРОМНЫЙ ОДИН ЦВЕТ</option>
+                <option value="original">ИСХОДНЫЙ ЦВЕТ ПИКСЕЛЕЙ</option>
+              </select>
+            </div>
+
+            <!-- Palettes Grid -->
+            <div id="palette-selection-box" style="display: flex; flex-direction: column; gap: 4px;">
+              <div class="palettes-grid" id="palettes-grid">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Single Color Input -->
+            <div id="single-color-box" style="display: none; align-items: center; gap: 8px;">
+              <span class="fader-name" id="i18n-glyphcolor-lbl">ЦВЕТ ГЛИФОВ:</span>
+              <input type="color" id="picker-single-color" value="#00ff66" style="width: 40px; height: 28px; background: transparent; border: 1px solid var(--chassis-dark); cursor: pointer;" />
+              <input type="text" id="hex-single-color" class="manual-glyph-input" value="#00ff66" style="max-width: 120px; font-size: 14px; padding: 3px 6px;" />
+            </div>
+
+            <!-- Background Color Row -->
+            <div id="bg-color-row" style="display: flex; align-items: center; gap: 8px;">
+              <span class="fader-name" id="i18n-bgcolor-lbl">ЦВЕТ ФОНА:</span>
+              <input type="color" id="picker-bg-color" value="#040904" style="width: 40px; height: 28px; background: transparent; border: 1px solid var(--chassis-dark); cursor: pointer;" />
+              <input type="text" id="hex-bg-color" class="manual-glyph-input" value="#040904" style="max-width: 120px; font-size: 14px; padding: 3px 6px;" />
+            </div>
+
+            <!-- Professional Color Grading & 3-Way Color Wheels -->
+            <div class="color-grading-card">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="vfd-label" id="i18n-grade-title">[КОЛОР-ГРЕЙДИНГ: ЦВЕТОВЫЕ КРУГИ 3-WAY]</span>
+                <button id="btn-reset-all-grading" class="wheel-btn-reset" title="Сбросить все настройки грейдинга">СБРОС ↺</button>
+              </div>
+
+              <!-- 3-Way Color Wheels Grid: Lift (Shadows), Gamma (Midtones), Gain (Highlights) -->
+              <div class="color-wheels-grid">
+                <!-- Lift / Shadows -->
+                <div class="color-wheel-box">
+                  <div class="color-wheel-header">
+                    <span id="i18n-lift-wheel-lbl">ТЕНИ (LIFT)</span>
+                    <button id="btn-reset-lift" class="wheel-btn-reset" title="Сбросить тени">↺</button>
+                  </div>
+                  <canvas id="wheel-lift" width="76" height="76" class="color-wheel-canvas"></canvas>
+                  <div style="width: 100%; display: flex; flex-direction: column; gap: 2px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: #888;">
+                      <span class="i18n-wheel-level-lbl">УРОВЕНЬ</span>
+                      <span id="val-lift-level">0%</span>
+                    </div>
+                    <input type="range" id="slider-lift-level" min="-50" max="50" step="1" value="0" />
+                  </div>
+                </div>
+
+                <!-- Gamma / Midtones -->
+                <div class="color-wheel-box">
+                  <div class="color-wheel-header">
+                    <span id="i18n-gamma-wheel-lbl">ТОНА (GAMMA)</span>
+                    <button id="btn-reset-gamma" class="wheel-btn-reset" title="Сбросить полутона">↺</button>
+                  </div>
+                  <canvas id="wheel-gamma" width="76" height="76" class="color-wheel-canvas"></canvas>
+                  <div style="width: 100%; display: flex; flex-direction: column; gap: 2px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: #888;">
+                      <span class="i18n-wheel-level-lbl">УРОВЕНЬ</span>
+                      <span id="val-gamma-level">0%</span>
+                    </div>
+                    <input type="range" id="slider-gamma-level" min="-50" max="50" step="1" value="0" />
+                  </div>
+                </div>
+
+                <!-- Gain / Highlights -->
+                <div class="color-wheel-box">
+                  <div class="color-wheel-header">
+                    <span id="i18n-gain-wheel-lbl">СВЕТА (GAIN)</span>
+                    <button id="btn-reset-gain" class="wheel-btn-reset" title="Сбросить света">↺</button>
+                  </div>
+                  <canvas id="wheel-gain" width="76" height="76" class="color-wheel-canvas"></canvas>
+                  <div style="width: 100%; display: flex; flex-direction: column; gap: 2px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: #888;">
+                      <span class="i18n-wheel-level-lbl">УРОВЕНЬ</span>
+                      <span id="val-gain-level">0%</span>
+                    </div>
+                    <input type="range" id="slider-gain-level" min="-50" max="50" step="1" value="0" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Color Temperature & Tint -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <div class="fader-strip">
+                  <div class="fader-meta-row">
+                    <span class="fader-name" style="font-size: 11px;" id="i18n-temp-lbl">ТЕМПЕРАТУРА</span>
+                    <span class="vfd-readout-box" id="val-temp" style="font-size: 11px;">0</span>
+                  </div>
+                  <input type="range" id="slider-temp" min="-100" max="100" step="2" value="0" />
+                </div>
+                <div class="fader-strip">
+                  <div class="fader-meta-row">
+                    <span class="fader-name" style="font-size: 11px;" id="i18n-tint-lbl">ОТТЕНОК (TINT)</span>
+                    <span class="vfd-readout-box" id="val-tint" style="font-size: 11px;">0</span>
+                  </div>
+                  <input type="range" id="slider-tint" min="-100" max="100" step="2" value="0" />
+                </div>
+              </div>
+
+              <!-- Saturation & Hue Rotation -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <div class="fader-strip">
+                  <div class="fader-meta-row">
+                    <span class="fader-name" style="font-size: 11px;" id="i18n-sat-lbl">НАСЫЩЕННОСТЬ</span>
+                    <span class="vfd-readout-box" id="val-sat" style="font-size: 11px;">100%</span>
+                  </div>
+                  <input type="range" id="slider-sat" min="0" max="200" step="2" value="100" />
+                </div>
+                <div class="fader-strip">
+                  <div class="fader-meta-row">
+                    <span class="fader-name" style="font-size: 11px;" id="i18n-hue-lbl">СДВИГ ТОНА</span>
+                    <span class="vfd-readout-box" id="val-hue-rot" style="font-size: 11px;">0°</span>
+                  </div>
+                  <input type="range" id="slider-hue-rot" min="0" max="360" step="5" value="0" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- ==============================================================
+           LOWER ENGINEERING DECKS (Request 6: Wide Glyph Database + Manual Input & Cassette Bay)
+      ============================================================== -->
+      <footer class="workstation-lower-deck">
+        <!-- Deck 1 (Expanded, 1fr): Glyph Database & Manual Symbol Input -->
+        <section class="deck-keypad-module">
+          <div class="module-title-bar">
+            <span id="i18n-deck1-title">[БАЗА ГЛИФОВ &amp; РУЧНОЙ ВВОД СИМВОЛОВ]</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="vfd-label" id="i18n-active-lbl">АКТИВНО:</span>
+              <span id="active-glyph-count" style="color: var(--vfd-green); font-family: var(--font-mono); font-size: 14px; font-weight: 800;">8 glyphs</span>
+            </div>
+          </div>
+
+          <!-- Category Selection Matrix -->
+          <div class="category-tabs" id="category-tabs-container">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Split: Curated Sets on Left + Manual Custom Input & Ribbon on Right -->
+          <div class="glyph-deck-split">
+            <!-- Left: Curated Sets -->
+            <div class="glyph-sets-container" id="glyph-sets-list">
+              <!-- Dynamically populated -->
+            </div>
+
+            <!-- Right: Dedicated Manual Input Station & Interactive Ribbon -->
+            <div class="manual-input-station">
+              <div class="manual-input-header">
+                <span class="vfd-label" id="i18n-manual-title">РУЧНОЙ ВВОД СИМВОЛОВ (ПРОИЗВОЛЬНЫЙ АЛФАВИТ):</span>
+                <span class="hw-led active-green" style="margin-left: 6px;"></span>
+              </div>
+
+              <!-- Input text row -->
+              <div class="manual-input-box">
+                <input
+                  type="text"
+                  id="manual-glyph-input"
+                  class="manual-glyph-input"
+                  placeholder="Введите любые символы (напр.  .:-=+*#%@█ или руны)..."
+                  value=" .:+*#%@"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+
+              <!-- Quick Action Tool Buttons -->
+              <div class="manual-actions-row">
+                <button id="btn-reverse-glyphs" class="hw-btn" title="Инвертировать порядок глифов (от светлого к темному / наоборот)">
+                  <span id="i18n-btn-reverse">РЕВЕРС ⇄</span>
+                </button>
+                <button id="btn-reset-to-set" class="hw-btn" title="Загрузить символы из выбранного набора">
+                  <span id="i18n-btn-reset-set">ИЗ НАБОРА ↺</span>
+                </button>
+                <button id="btn-clear-glyphs" class="hw-btn" title="Очистить строку ввода">
+                  <span id="i18n-btn-clear">ОЧИСТИТЬ ✕</span>
+                </button>
+                <button id="btn-copy-glyphs" class="hw-btn" title="Скопировать строку символов в буфер">
+                  <span id="i18n-btn-copy">КОПИРОВАТЬ 📋</span>
+                </button>
+              </div>
+
+              <!-- Live Interactive Character Ribbon -->
+              <div class="glyph-ribbon" id="glyph-ribbon">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Deck 3 (Right, 340px): Media Ingest & GIF Station -->
+        <section class="deck-ingest-module">
+          <div class="module-title-bar">
+            <span id="i18n-deck3-title">[ОТСЕК ЗАГРУЗКИ GIF &amp; ИЗОБРАЖЕНИЙ]</span>
+            <span class="hw-led active-amber"></span>
+          </div>
+
+          <!-- Cassette Bay Door -->
+          <div class="cassette-door-slot" id="btn-upload-file" title="Нажмите для загрузки GIF или картинки">
+            <span class="door-title" id="i18n-slot-prompt">▼ ЗАГРУЗИТЬ GIF ИЛИ КАРТИНКУ ▼</span>
+            <span class="door-sub" id="i18n-slot-sub">DRAG &amp; DROP / КЛИК ДЛЯ ОБЗОРА</span>
+          </div>
+
+          <div class="vent-grill" style="margin-top: 4px;"></div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 4px;">
+            <span>SERIAL: 9204-SONY-SGI</span>
+            <span>GIF89a / RASTER READY</span>
+          </div>
+        </section>
+      </footer>
+    </div>
+
+    <!-- Hidden File Input for Ingest -->
+    <input type="file" id="file-input" accept="image/*,image/gif,video/mp4,video/webm" style="display: none;" />
+
+    <!-- Export Studio Modal (3 Download Formats) -->
+    <div class="modal-backdrop" id="export-modal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <span id="i18n-modal-export-title">СТУДИЯ ЭКСПОРТА // EXPORT STUDIO</span>
+          <button id="btn-close-export" class="hw-btn" style="padding: 2px 8px;">✕</button>
+        </div>
+
+        <div class="modal-body" style="gap: 12px; padding: 16px;">
+          <div style="font-size: 14px; color: var(--text-dim);" id="i18n-export-desc">
+            Выберите формат для сохранения артворка (всего 3 формата):
+          </div>
+
+          <!-- 1. GIF Button Card -->
+          <div class="fader-strip" style="background: rgba(255, 153, 0, 0.08); border: 2px solid #ffaa00; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="fader-name" style="color: #ffaa00; font-size: 16px;" id="i18n-gif-box-title">1. АНИМИРОВАННЫЙ GIF (.GIF)</span>
+              <span id="gif-encoding-status" style="font-size: 13px; color: var(--vfd-green); display: none;">
+                <span id="gif-encoding-lbl">● КОДИРОВАНИЕ GIF...</span> <span id="gif-progress-percent">0%</span>
+              </span>
+            </div>
+            <div style="font-size: 13px; color: var(--text-ink); margin-top: 3px;" id="i18n-gif-box-desc">
+              Запись текущей анимации в оптимизированный зацикленный файл GIF89a.
+            </div>
+            <button id="btn-modal-export-gif" class="hw-btn hw-btn-amber" style="margin-top: 10px; padding: 10px 16px; font-size: 15px; width: 100%;">
+              💾 <span id="i18n-gif-download-btn">СКАЧАТЬ GIF</span>
+            </button>
+          </div>
+
+          <!-- 2. PNG / JPEG Button Card -->
+          <div class="fader-strip" style="background: rgba(0, 255, 102, 0.06); border: 2px solid var(--vfd-green); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="fader-name" style="color: var(--vfd-green); font-size: 16px;" id="i18n-image-box-title">2. ИЗОБРАЖЕНИЕ (PNG / JPEG)</span>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span class="vfd-label" style="font-size: 12px;" id="i18n-image-format-lbl">ФОРМАТ:</span>
+                <select id="select-image-format" class="hardware-select" style="font-size: 13px; padding: 2px 6px;">
+                  <option value="png" selected>PNG (LOSSLESS)</option>
+                  <option value="jpeg">JPEG (RGB 95%)</option>
+                </select>
+              </div>
+            </div>
+            <div style="font-size: 13px; color: var(--text-ink); margin-top: 3px;" id="i18n-image-box-desc">
+              Экспорт текущего растрового кадра в высоком разрешении.
+            </div>
+            <button id="btn-export-image" class="hw-btn hw-btn-green" style="margin-top: 10px; padding: 10px 16px; font-size: 15px; width: 100%;">
+              🖼️ <span id="i18n-image-download-btn">СКАЧАТЬ PNG / JPEG</span>
+            </button>
+          </div>
+
+          <!-- 3. WEBM Video Card -->
+          <div class="fader-strip" style="background: rgba(255, 51, 34, 0.07); border: 2px solid #ff4433; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="fader-name" style="color: #ff6655; font-size: 16px;" id="i18n-webm-box-title">3. ВИДЕОЗАПИСЬ (.WEBM)</span>
+              <span id="recording-status" style="font-size: 13px; color: var(--led-red); display: none;">
+                <span id="recording-status-lbl">● ЗАПИСЬ:</span> <span id="record-timer">0s</span> / 5s
+              </span>
+            </div>
+            <div style="font-size: 13px; color: var(--text-ink); margin-top: 3px;" id="i18n-webm-box-desc">
+              Запись 5-секундного видеоролика анимации в формате WebM.
+            </div>
+            <button id="btn-record-video" class="hw-btn hw-btn-red" style="margin-top: 10px; padding: 10px 16px; font-size: 15px; width: 100%;">
+              🎥 <span id="i18n-webm-download-btn">СКАЧАТЬ WEBM</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btn-dismiss-export" class="hw-btn">ЗАКРЫТЬ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save Preset Modal -->
+    <div class="modal-backdrop" id="save-preset-modal">
+      <div class="modal-box" style="max-width: 440px;">
+        <div class="modal-header">
+          <span id="i18n-savepreset-title">СОХРАНИТЬ ПРЕСЕТ В ПАМЯТЬ</span>
+          <button id="btn-close-save-preset" class="hw-btn" style="padding: 2px 8px;">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <span class="vfd-label" id="i18n-preset-name-lbl">ИМЯ ПРЕСЕТА:</span>
+            <input type="text" id="input-preset-name" class="manual-glyph-input" style="font-size: 15px;" placeholder="например, КИБЕР-ГРАФИТ-01" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-preset" class="hw-btn">ОТМЕНА</button>
+          <button id="btn-confirm-save-preset" class="hw-btn hw-btn-green">СОХРАНИТЬ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Single Glyph Inspector Modal -->
+    <div class="modal-backdrop" id="glyph-inspect-modal">
+      <div class="modal-box" style="max-width: 400px;">
+        <div class="modal-header">
+          <span id="i18n-inspect-title">ИНСПЕКТОР СИМВОЛА</span>
+          <button id="btn-close-inspect" class="hw-btn" style="padding: 2px 8px;">✕</button>
+        </div>
+        <div class="modal-body" style="align-items: center; text-align: center; gap: 14px;">
+          <div id="inspect-glyph-view" style="font-size: 80px; font-family: var(--font-mono); color: var(--vfd-green); background: #080c08; border: 3px inset #1e201a; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px var(--vfd-green-glow);">
+            @
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div id="inspect-glyph-name" style="font-size: 16px; font-weight: 800; color: #fff;">CHAR "@"</div>
+            <div id="inspect-glyph-unicode" style="font-size: 14px; color: var(--led-amber); font-family: var(--font-mono);">U+0040</div>
+            <div id="inspect-glyph-index" style="font-size: 13px; color: var(--text-dim); font-family: var(--font-mono);">#0</div>
+          </div>
+          <button id="btn-copy-single-glyph" class="hw-btn hw-btn-green" style="width: 100%;">
+            СКОПИРОВАТЬ СИМВОЛ
+          </button>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-dismiss-inspect" class="hw-btn">ЗАКРЫТЬ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Welcome / Entry Menu Window (Pre-interface Ingest Bay) -->
+    <div class="welcome-modal-backdrop" id="welcome-menu-modal">
+      <div class="welcome-box">
+        <!-- Industrial Chassis Screws -->
+        <div class="welcome-screw screw-tl">+</div>
+        <div class="welcome-screw screw-tr">+</div>
+        <div class="welcome-screw screw-bl">+</div>
+        <div class="welcome-screw screw-br">+</div>
+
+        <!-- Terminal Header -->
+        <div class="welcome-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--vfd-green); box-shadow: 0 0 8px var(--vfd-green-glow); animation: blink 1.2s infinite ease-in-out;"></span>
+            <span id="i18n-welcome-term-title">SACRED GLYPH // INITIALIZATION INGEST BAY</span>
+          </div>
+          <button id="btn-close-welcome" class="hw-btn" style="padding: 2px 8px; font-size: 13px;" title="Закрыть меню и перейти в студию">✕</button>
+        </div>
+
+        <!-- Window Body -->
+        <div class="welcome-body">
+          <!-- Majestic Brand Title in CS Denisa Halfpixel Top Demo -->
+          <div class="welcome-brand-wrap">
+            <h1 class="welcome-brand-title">Sacred Glyph</h1>
+            <div class="welcome-brand-sub" id="i18n-welcome-sub">MEDIEVAL ASCII &amp; DITHER WORKSTATION // GRAPHICS PIPELINE</div>
+          </div>
+
+          <!-- Drag and Drop Interactive Card -->
+          <div class="welcome-drop-card" id="welcome-drop-box" title="Нажмите или перетащите файл сюда">
+            <button id="btn-welcome-upload" class="welcome-main-btn" type="button">
+              <span style="font-size: 20px;">📂</span>
+              <span id="i18n-welcome-upload-btn">ЗАГРУЗИТЬ GIF ИЛИ КАРТИНКУ</span>
+            </button>
+            <div class="welcome-drop-hint" id="i18n-welcome-drop-hint">
+              или перетащите файл (.GIF, .PNG, .JPG, .WEBP) прямо в это окно
+            </div>
+          </div>
+
+          <!-- Actions Row: Skip to sample studio -->
+          <div class="welcome-actions-row">
+            <button id="btn-welcome-skip" class="hw-btn welcome-skip-btn" type="button">
+              <span id="i18n-welcome-skip-btn">▶ ВОЙТИ В СТУДИЮ С ОБРАЗЦОМ</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Engine Bundle Entry -->
+    <script type="module" src="/src/engine.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "Script Slayer — Dither Boy Medieval ASCII Studio",
+  "description": "Professional medieval & gothic ASCII art and dithering engine with 48 glyph sets, real-time video/webcam processing, and Dither Boy algorithms.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
