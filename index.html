@@ -40,9 +40,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800;900&family=MedievalSharp&family=Pirata+One&family=Share+Tech+Mono&family=UnifrakturCook:wght@700&family=UnifrakturMaguntia&family=VT323&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/fonts/cs-denisa.css" />
+    <link rel="stylesheet" href="./fonts/cs-denisa.css" />
 
     <style>
+      @font-face {
+        font-family: 'CS Denisa Halfpixel Top Demo';
+        src: url('./fonts/CsDenisaHalfpixelTopDemo-OGvO8.otf') format('opentype'),
+             url('fonts/CsDenisaHalfpixelTopDemo-OGvO8.otf') format('opentype'),
+             url('/fonts/CsDenisaHalfpixelTopDemo-OGvO8.otf') format('opentype');
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
       :root {
         /* Industrial Japanese Workstation Palette (90s SGI / Sony Broadcast) - Light Theme */
         --chassis-bg: #b8b8aa;
@@ -55,9 +64,9 @@
         --panel-recess: #1e201c;
         --bezel-dark: #282a26;
         --crt-screen-bg: #070907;
-        --vfd-green: #00ff66;
-        --vfd-green-dim: #008833;
-        --vfd-green-glow: rgba(0, 255, 102, 0.45);
+        --vfd-green: #d79bdf;
+        --vfd-green-dim: #a066a9;
+        --vfd-green-glow: rgba(215, 155, 223, 0.45);
         --led-amber: #ff9900;
         --led-red: #ff3322;
         --led-blue: #00e5ff;
@@ -83,6 +92,9 @@
         --panel-recess: #0a0b08;
         --bezel-dark: #121310;
         --crt-screen-bg: #040604;
+        --vfd-green: #8f8eec;
+        --vfd-green-dim: #5857a8;
+        --vfd-green-glow: rgba(143, 142, 236, 0.45);
         --text-ink: #e8eae0;
         --text-dim: #9aa092;
         --text-light: #ffffff;
@@ -260,11 +272,17 @@
         box-shadow: none;
       }
       .hw-btn-green {
-        background: #0f3d1e;
-        color: #00ff66;
-        border-color: #2ebd58;
+        background: #381f3c;
+        color: var(--vfd-green);
+        border-color: var(--vfd-green);
       }
-      .hw-btn-green:hover { background: #15542a; }
+      .hw-btn-green:hover { background: #4f2c55; color: #ffffff; }
+      body[data-theme="dark"] .hw-btn-green {
+        background: #202046;
+        color: var(--vfd-green);
+        border-color: var(--vfd-green);
+      }
+      body[data-theme="dark"] .hw-btn-green:hover { background: #2f2e66; color: #ffffff; }
       .hw-btn-amber {
         background: #472b04;
         color: #ffaa00;
@@ -481,7 +499,7 @@
         justify-content: center;
       }
       .crt-ctrl-btn:hover {
-        background: #00ff66;
+        background: var(--vfd-green);
         color: #000;
       }
       .crt-ctrl-btn.active {
@@ -489,22 +507,31 @@
         color: #000;
       }
 
-      /* Drag & Drop Overlay inside CRT */
+      /* Drag & Drop & Upload Overlay inside CRT */
       .drop-zone-overlay {
         position: absolute;
         inset: 0;
-        background: rgba(6, 12, 6, 0.92);
-        border: 3px dashed var(--vfd-green);
-        display: none;
+        background: rgba(6, 12, 6, 0.90);
+        border: 2px dashed rgba(0, 255, 102, 0.55);
+        display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 10px;
+        gap: 12px;
         color: var(--vfd-green);
         z-index: 20;
+        cursor: pointer;
+        padding: 24px;
+        text-align: center;
+        transition: background 0.15s ease, border-color 0.15s ease;
       }
-      .drop-zone-overlay.visible {
-        display: flex;
+      .drop-zone-overlay:hover {
+        background: rgba(8, 18, 8, 0.95);
+        border-color: var(--vfd-green);
+        box-shadow: inset 0 0 30px rgba(0, 255, 102, 0.15);
+      }
+      .drop-zone-overlay.hidden {
+        display: none !important;
       }
 
       /* --------------------------------------------------------------
@@ -518,6 +545,108 @@
         padding: 6px;
         gap: 6px;
         overflow-y: auto;
+      }
+
+      .analog-rack-unit .waveform-monitor-card,
+      .analog-rack-unit .anim-transport-card,
+      .analog-rack-unit .rack-panel-box,
+      .analog-rack-unit .color-grading-card,
+      .analog-rack-unit .mod-chain-box {
+        color: #e4e7dc;
+      }
+
+      .analog-rack-unit .module-title-bar {
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid #33362c;
+        border-left: 3px solid var(--vfd-green);
+        color: #ffffff;
+      }
+
+      .analog-rack-unit .module-title-bar span {
+        color: #ffffff;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+      }
+
+      /* Light Theme High-Contrast Polish for Settings / Analog Rack Unit */
+      body[data-theme="light"] .analog-rack-unit .waveform-monitor-card,
+      body[data-theme="light"] .analog-rack-unit .anim-transport-card,
+      body[data-theme="light"] .analog-rack-unit .rack-panel-box,
+      body[data-theme="light"] .analog-rack-unit .color-grading-card,
+      body[data-theme="light"] .analog-rack-unit .mod-chain-box {
+        background: #141714;
+        border-color: #4a4e42;
+        color: #f2f5ec;
+      }
+
+      body[data-theme="light"] .analog-rack-unit .module-title-bar {
+        background: #090c09 !important;
+        border: 1px solid #383d30 !important;
+        border-left: 4px solid var(--vfd-green) !important;
+        color: #ffffff !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      }
+
+      body[data-theme="light"] .analog-rack-unit .module-title-bar span,
+      body[data-theme="light"] .analog-rack-unit #i18n-mon2,
+      body[data-theme="light"] .analog-rack-unit #i18n-anim-title,
+      body[data-theme="light"] .analog-rack-unit #i18n-grade-title {
+        color: #ffffff !important;
+        font-weight: 800 !important;
+        text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+      }
+
+      body[data-theme="light"] .analog-rack-unit #i18n-chain-title {
+        color: #ffaa00 !important;
+        font-weight: 800 !important;
+        text-shadow: 0 0 8px rgba(255, 170, 0, 0.5);
+      }
+
+      body[data-theme="light"] .analog-rack-unit .vfd-label {
+        color: #e2e6dc !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.06em;
+      }
+
+      body[data-theme="light"] .analog-rack-unit .fader-name,
+      body[data-theme="light"] .analog-rack-unit [id$="-lbl"],
+      body[data-theme="light"] .analog-rack-unit [id*="lbl"] {
+        color: #f2f5ec !important;
+        font-weight: 800 !important;
+        text-transform: uppercase;
+      }
+
+      body[data-theme="light"] .analog-rack-unit label,
+      body[data-theme="light"] .analog-rack-unit .toggle-switch-row,
+      body[data-theme="light"] .analog-rack-unit .toggle-switch-row span {
+        color: #e4e8dc !important;
+        font-weight: 700;
+      }
+
+      body[data-theme="light"] .analog-rack-unit #i18n-trans-lbl {
+        color: #f2f5ec !important;
+        font-weight: 800;
+      }
+
+      body[data-theme="light"] .analog-rack-unit .color-wheel-header,
+      body[data-theme="light"] .analog-rack-unit .color-wheel-header span {
+        color: #ffffff !important;
+        font-weight: 800 !important;
+      }
+
+      body[data-theme="light"] .analog-rack-unit .i18n-wheel-level-lbl,
+      body[data-theme="light"] .analog-rack-unit .color-wheel-box div[style*="color: #888"] span {
+        color: #cdd2c4 !important;
+        font-weight: 700;
+      }
+
+      body[data-theme="light"] .analog-rack-unit .color-wheel-box {
+        background: #080a08;
+        border-color: #383c32;
+      }
+
+      body[data-theme="light"] .analog-rack-unit #injection-char-count {
+        color: #b2b8aa !important;
       }
 
       .waveform-monitor-card {
@@ -588,14 +717,14 @@
       }
       .color-wheels-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
       }
       .color-wheel-box {
         background: #0d0f0c;
         border: 1px solid var(--chassis-dark);
         border-radius: 4px;
-        padding: 6px 4px;
+        padding: 6px 6px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -612,12 +741,12 @@
         letter-spacing: 0.05em;
       }
       .color-wheel-canvas {
-        width: 74px;
-        height: 74px;
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
         cursor: crosshair;
         background: #111;
-        box-shadow: 0 0 6px rgba(0, 255, 102, 0.2);
+        box-shadow: 0 0 6px var(--vfd-green-glow);
         border: 1px solid #333;
         touch-action: none;
       }
@@ -782,7 +911,7 @@
       ============================================================== */
       .workstation-lower-deck {
         display: grid;
-        grid-template-columns: 1fr 340px;
+        grid-template-columns: 1fr;
         gap: 6px;
         min-height: 0;
         overflow: hidden;
@@ -880,21 +1009,189 @@
         text-overflow: ellipsis;
       }
 
-      /* Manual Input Station & Interactive Character Ribbon */
-      .manual-input-station {
+      /* Animation Timeline & Live REC Studio */
+      .timeline-station {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 5px;
         background: #10120e;
         border: 2px inset var(--chassis-dark);
-        padding: 8px;
+        padding: 6px 10px;
         overflow: hidden;
+        min-height: 0;
+        justify-content: space-between;
+      }
+      body[data-theme="light"] .timeline-station {
+        background: #e4e7e2;
+        border-color: #b0b5aa;
+      }
+      body[data-theme="light"] .timeline-station .vfd-label,
+      body[data-theme="light"] .timeline-station #i18n-timeline-title {
+        color: #121410 !important;
+        font-weight: 800 !important;
+      }
+      body[data-theme="light"] .timeline-station #i18n-timeline-fps-lbl,
+      body[data-theme="light"] .timeline-station #i18n-timeline-loop-lbl {
+        color: #2b2e26 !important;
+        font-weight: 800 !important;
+      }
+      body[data-theme="light"] .timeline-station .timeline-helper-hint,
+      body[data-theme="light"] .timeline-station #i18n-timeline-hint {
+        color: #1e201a !important;
       }
 
-      .manual-input-header {
+      .timeline-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .timeline-rec-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #555555;
+        display: inline-block;
+        transition: background 0.2s, box-shadow 0.2s;
+      }
+      .timeline-rec-dot.recording {
+        background: #ff2222;
+        box-shadow: 0 0 10px #ff2222, 0 0 18px #ff0000;
+        animation: recPulse 0.8s infinite alternate;
+      }
+      @keyframes recPulse {
+        0% { opacity: 1; transform: scale(1); }
+        100% { opacity: 0.4; transform: scale(1.15); }
+      }
+
+      .timeline-status-badge {
+        font-family: var(--font-tech);
+        font-size: 11px;
+        font-weight: 800;
+        padding: 2px 6px;
+        background: rgba(0,0,0,0.4);
+        border: 1px solid var(--chassis-dark);
+        color: var(--text-dim);
+        border-radius: 2px;
+      }
+      .timeline-status-badge.recording {
+        color: #ff4444;
+        border-color: #ff3333;
+        background: rgba(255, 50, 50, 0.15);
+      }
+      .timeline-status-badge.playing {
+        color: var(--vfd-green);
+        border-color: var(--vfd-green);
+        background: rgba(0, 255, 102, 0.1);
+      }
+
+      .timeline-transport-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .timeline-btn-rec {
+        border-color: #ff3333;
+        color: #ff4444;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .timeline-btn-rec.active {
+        background: #ff2222;
+        color: #ffffff;
+        box-shadow: 0 0 12px rgba(255, 34, 34, 0.6);
+        border-color: #ff6666;
+      }
+
+      .timeline-track-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        background: #080907;
+        border: 1px solid var(--chassis-dark);
+        padding: 4px 8px;
+        border-radius: 2px;
+        position: relative;
+      }
+      body[data-theme="light"] .timeline-track-wrap {
+        background: #d4d8cf;
+        border-color: #aab0a2;
+      }
+
+      .timeline-ruler {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        color: #666666;
+        padding: 0 4px;
+        user-select: none;
+      }
+
+      .timeline-scrubber-container {
+        position: relative;
+        height: 24px;
+        display: flex;
+        align-items: center;
+      }
+
+      .timeline-track-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 24px;
+        pointer-events: none;
+        border-radius: 2px;
+      }
+
+      .timeline-slider {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        margin: 0;
+        height: 24px;
+        background: transparent;
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+      .timeline-slider::-webkit-slider-runnable-track {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 3px;
+      }
+      .timeline-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 22px;
+        background: var(--vfd-green);
+        border: 2px solid #ffffff;
+        box-shadow: 0 0 8px var(--vfd-green-glow);
+        cursor: ew-resize;
+        margin-top: -8px;
+        border-radius: 2px;
+      }
+      .timeline-slider:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .timeline-helper-hint {
+        font-size: 11px;
+        color: var(--text-dim);
+        font-family: var(--font-tech);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .manual-glyph-input {
@@ -903,64 +1200,11 @@
         border: 2px solid var(--vfd-green);
         color: var(--vfd-green);
         font-family: var(--font-mono);
-        font-size: 17px;
+        font-size: 15px;
         font-weight: 800;
-        padding: 6px 12px;
+        padding: 4px 10px;
         outline: none;
-        letter-spacing: 0.12em;
         box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.25);
-      }
-      .manual-glyph-input:focus {
-        border-color: #55ff99;
-        box-shadow: 0 0 10px var(--vfd-green-glow);
-      }
-
-      .manual-actions-row {
-        display: flex;
-        gap: 6px;
-        align-items: center;
-      }
-
-      /* Live Interactive Character Ribbon */
-      .glyph-ribbon {
-        flex: 1;
-        min-height: 48px;
-        background: #090a07;
-        border: 2px inset var(--chassis-dark);
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 8px;
-        overflow-x: auto;
-      }
-      .glyph-ribbon-cell {
-        min-width: 38px;
-        height: 44px;
-        background: #141712;
-        border: 1px solid #2a3424;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: transform 0.05s ease;
-      }
-      .glyph-ribbon-cell:hover {
-        border-color: var(--vfd-green);
-        transform: translateY(-2px);
-        background: #1c2419;
-      }
-      .glyph-char {
-        font-family: var(--font-mono);
-        font-size: 20px;
-        font-weight: 800;
-        color: var(--vfd-green);
-        line-height: 1;
-      }
-      .glyph-idx {
-        font-size: 10px;
-        color: var(--text-dim);
-        font-family: var(--font-mono);
       }
 
       /* Deck 3: Cassette Bay Media Ingest */
@@ -1026,6 +1270,10 @@
         display: flex;
         flex-direction: column;
       }
+      .modal-box-wide {
+        max-width: 860px;
+        max-height: 88vh;
+      }
       .modal-header {
         background: #141512;
         color: var(--vfd-green);
@@ -1051,6 +1299,124 @@
         display: flex;
         justify-content: flex-end;
         gap: 8px;
+      }
+
+      /* Settings Window & Studio Sections Styling */
+      .settings-nav-tabs {
+        display: flex;
+        gap: 3px;
+        overflow-x: auto;
+        padding: 6px 10px;
+        background: #0f110d;
+        border-bottom: 2px solid var(--chassis-dark);
+      }
+      .settings-tab-btn {
+        background: #181a15;
+        border: 1px solid var(--chassis-dark);
+        color: var(--text-dim);
+        font-family: var(--font-tech);
+        font-size: 11px;
+        font-weight: 800;
+        padding: 5px 10px;
+        white-space: nowrap;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.1s ease;
+        text-transform: uppercase;
+      }
+      .settings-tab-btn:hover {
+        color: #ffffff;
+        background: #242820;
+      }
+      .settings-tab-btn.active {
+        background: var(--vfd-green);
+        color: #000000;
+        border-color: var(--vfd-green);
+        box-shadow: 0 0 8px var(--vfd-green-glow);
+      }
+      .settings-section-view {
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .settings-section-view.active {
+        display: flex;
+      }
+      .section-badge-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(0,0,0,0.2);
+        padding: 6px 10px;
+        border: 1px solid var(--chassis-dark);
+      }
+      .section-preset-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0,0,0,0.25);
+        padding: 8px;
+        border: 1px inset var(--chassis-dark);
+      }
+      .preset-pill-btn {
+        background: #181a15;
+        border: 1px solid var(--chassis-dark);
+        color: var(--vfd-green);
+        font-family: var(--font-tech);
+        font-size: 11px;
+        font-weight: 800;
+        padding: 4px 8px;
+        cursor: pointer;
+        transition: all 0.1s;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .preset-pill-btn:hover {
+        background: var(--vfd-green);
+        color: #000000;
+        box-shadow: 0 0 6px var(--vfd-green-glow);
+      }
+      .rack-nav-tabs {
+        display: flex;
+        gap: 2px;
+        overflow-x: auto;
+        margin-bottom: 6px;
+        padding-bottom: 3px;
+      }
+      .rack-nav-tab {
+        background: #141612;
+        border: 1px solid var(--chassis-dark);
+        color: #88887e;
+        font-family: var(--font-tech);
+        font-size: 10px;
+        font-weight: 800;
+        padding: 3px 6px;
+        white-space: nowrap;
+        cursor: pointer;
+        flex-shrink: 0;
+        text-transform: uppercase;
+      }
+      .rack-nav-tab:hover {
+        color: #ffffff;
+        background: #22241f;
+      }
+      .rack-nav-tab.active {
+        background: var(--vfd-green);
+        color: #000000;
+        border-color: var(--vfd-green);
+      }
+      .custom-injection-box {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        background: #0d0f0c;
+        border: 1px solid var(--chassis-dark);
+        padding: 6px;
       }
 
       /* ==============================================================
@@ -1107,18 +1473,13 @@
       .welcome-screw.screw-br { bottom: 6px; right: 6px; }
 
       .welcome-header {
-        background: #0d120d;
-        border: 2px inset var(--chassis-dark);
-        color: var(--vfd-green);
-        font-family: var(--font-mono);
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 1.5px;
-        padding: 8px 14px;
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-end;
         align-items: center;
-        margin: 14px 14px 0 14px;
+        padding: 4px 6px;
+        margin: 6px 8px 0 8px;
+        background: transparent;
+        border: none;
       }
 
       .welcome-body {
@@ -1137,23 +1498,53 @@
         gap: 4px;
       }
 
+      @keyframes welcomeGradientShimmer {
+        0% {
+          background-position: 50% 0%;
+        }
+        100% {
+          background-position: 50% 100%;
+        }
+      }
+
       .welcome-brand-title {
-        font-family: 'CS Denisa Halfpixel Top Demo', 'UnifrakturCook', 'UnifrakturMaguntia', serif;
-        font-size: 58px;
-        line-height: 1.15;
-        color: var(--vfd-green);
-        text-shadow: 0 0 18px var(--vfd-green-glow), 0 0 40px rgba(45, 230, 110, 0.45);
-        letter-spacing: 2px;
+        font-family: 'CS Denisa Halfpixel Top Demo', 'UnifrakturCook', monospace, serif;
+        font-size: 76px;
+        font-weight: 400;
+        line-height: 1.08;
+        letter-spacing: 3px;
         margin: 0;
         user-select: none;
+        -webkit-font-smoothing: none;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: geometricPrecision;
+        /* Light Theme Vertical Gradient (top to bottom: cyan #7bcbdb to pink/orchid #ecc3f4 / #d79bdf / #be75c8 / #8f4699) */
+        background: linear-gradient(180deg, #7bcbdb 0%, #ecc3f4 20%, #d79bdf 40%, #be75c8 65%, #8f4699 85%, #7bcbdb 100%);
+        background-size: 100% 300%;
+        animation: welcomeGradientShimmer 4.5s ease-in-out infinite alternate;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 1px 2px rgba(142, 69, 152, 0.45));
+      }
+      body[data-theme="dark"] .welcome-brand-title {
+        /* Dark Theme Vertical Gradient (top to bottom: mint #81cf9f to lilac/neon indigo #cfcefe / #8f8eec / #5956cb) */
+        background: linear-gradient(180deg, #81cf9f 0%, #cfcefe 20%, #8f8eec 40%, #5956cb 65%, #81cf9f 85%, #cfcefe 100%);
+        background-size: 100% 300%;
+        animation: welcomeGradientShimmer 4.5s ease-in-out infinite alternate;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 10px rgba(143, 142, 236, 0.5));
       }
 
       .welcome-brand-sub {
         font-family: var(--font-mono);
-        font-size: 11px;
+        font-size: 13px;
         color: var(--text-dim);
-        letter-spacing: 2.5px;
+        letter-spacing: 2px;
         text-transform: uppercase;
+        margin-top: 2px;
       }
 
       .welcome-drop-card {
@@ -1189,20 +1580,26 @@
         cursor: pointer;
         letter-spacing: 1px;
         border: 3px outset var(--vfd-green);
-        background: #0f1c0f;
+        background: rgba(215, 155, 223, 0.16);
         color: var(--vfd-green);
-        box-shadow: 0 0 20px var(--vfd-green-glow), inset 0 0 10px rgba(45,230,110,0.25);
+        box-shadow: 0 0 20px var(--vfd-green-glow);
         transition: all 0.15s ease;
       }
       .welcome-main-btn:hover {
         background: var(--vfd-green);
-        color: #050b05;
-        box-shadow: 0 0 32px var(--vfd-green), inset 0 0 15px rgba(255,255,255,0.7);
+        color: #1f0b24;
+        box-shadow: 0 0 32px var(--vfd-green-glow), inset 0 0 15px rgba(255,255,255,0.7);
         transform: translateY(-1px);
       }
       .welcome-main-btn:active {
         border-style: inset;
         transform: translateY(1px);
+      }
+      body[data-theme="dark"] .welcome-main-btn {
+        background: rgba(143, 142, 236, 0.16);
+      }
+      body[data-theme="dark"] .welcome-main-btn:hover {
+        color: #0c0d16;
       }
 
       .welcome-drop-hint {
@@ -1256,6 +1653,14 @@
       .system-toast.visible {
         opacity: 1;
       }
+
+      /* Hidden via Focus Mode element selection */
+      div:nth-of-type(1) > div:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(2) {
+        display: none !important;
+      }
+      div:nth-of-type(1) > div:nth-of-type(1) > aside:nth-of-type(1) > div:nth-of-type(2) > div#lfo-controls:nth-of-type(3) > div:nth-of-type(4) {
+        display: none !important;
+      }
     </style>
   </head>
   <body data-theme="light">
@@ -1271,8 +1676,8 @@
           <!-- Master Presets Bay -->
           <div class="header-preset-bay">
             <span class="vfd-label" id="i18n-preset-lbl">ПРЕСЕТ:</span>
-            <select id="preset-selector" class="hardware-select" style="min-width: 220px;">
-              <!-- Dynamically populated with 16 master presets -->
+            <select id="preset-selector" class="hardware-select" style="min-width: 260px;">
+              <!-- Dynamically populated with 7 studio sections & master presets -->
             </select>
             <button id="btn-save-preset-dialog" class="hw-btn" title="Сохранить текущие параметры в новый пресет">
               СОХРАНИТЬ
@@ -1288,6 +1693,11 @@
 
           <button id="btn-toggle-lang" class="hw-btn" title="Switch Language / Сменить язык">
             🌐 RU / EN
+          </button>
+
+          <button id="btn-crt-upload" class="hw-btn hw-btn-green" title="Импортировать изображение или GIF">
+            <span>📂</span>
+            <span id="i18n-crt-upload-lbl">ИМПОРТ</span>
           </button>
 
           <button id="btn-open-export" class="hw-btn hw-btn-green" title="Открыть экспорт">
@@ -1311,13 +1721,6 @@
                 <option value="cover">ЗАПОЛНИТЬ (COVER)</option>
                 <option value="stretch">РАСТЯНУТЬ (STRETCH)</option>
               </select>
-
-              <span class="vfd-label" id="i18n-source-lbl">ДЕМО-ИСТОЧНИК:</span>
-              <!-- Request 4: ONLY hermetic_sigil and abyssal_flame -->
-              <select id="demo-media-select" class="hardware-select">
-                <option value="hermetic_sigil" selected>ДЕМО 1: ГЕРМЕТИЧЕСКАЯ ПЕЧАТЬ (LFO АНИМАЦИЯ)</option>
-                <option value="abyssal_flame">ДЕМО 2: ПЛАМЯ БЕЗДНЫ (ЧАСТИЦЫ)</option>
-              </select>
             </div>
           </div>
 
@@ -1337,15 +1740,16 @@
               <!-- Main ASCII Output Canvas -->
               <canvas id="ascii-canvas"></canvas>
 
-              <!-- Drop Zone Media Ingest -->
-              <div class="drop-zone-overlay" id="drop-zone-overlay">
-                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                </svg>
-                <div style="font-weight: 800; color: var(--vfd-green); font-size: 18px; letter-spacing: 0.1em;" id="i18n-drop-prompt">
-                  ЗАГРУЗИТЕ GIF ИЛИ ИЗОБРАЖЕНИЕ (DRAG &amp; DROP)
+              <!-- Drop Zone Media Ingest / Standby Screen -->
+              <div class="drop-zone-overlay" id="drop-zone-overlay" title="Нажмите для выбора файла или перетащите изображение/GIF сюда">
+                <div style="font-size: 38px; line-height: 1; filter: drop-shadow(0 0 10px rgba(0, 255, 102, 0.5));">📂</div>
+                <div class="hw-btn hw-btn-green" style="font-size: 15px; padding: 7px 18px; font-weight: 800; letter-spacing: 0.05em; pointer-events: none;">
+                  ВЫБРАТЬ GIF ИЛИ КАРТИНКУ
                 </div>
-                <div style="font-size: 14px; color: #a4a496;" id="i18n-drop-sub">
+                <div style="font-weight: 700; color: #d6d6c8; font-size: 14px; letter-spacing: 0.06em;" id="i18n-drop-prompt">
+                  ИЛИ ПЕРЕТАЩИТЕ СЮДА GIF / ИЗОБРАЖЕНИЕ
+                </div>
+                <div style="font-size: 12px; color: #88887e; font-family: var(--font-mono);" id="i18n-drop-sub">
                   ПОДДЕРЖКА АНИМИРОВАННЫХ GIF, PNG, JPG, WEBP, MP4
                 </div>
               </div>
@@ -1365,7 +1769,7 @@
                 <span class="hw-led active-green"></span>
                 <span style="font-size: 12px; color: #88887e; font-family: var(--font-mono);">POWER / RASTER SYNC</span>
               </div>
-              <div style="width: 220px;" class="vent-grill"></div>
+              <div style="width: 220px; display: none;" class="vent-grill"></div>
               <span style="font-size: 12px; color: #88887e; font-family: var(--font-mono);">RGB DAC MATRIX OUT</span>
             </div>
           </div>
@@ -1375,6 +1779,13 @@
              RIGHT CONSOLE: SECONDARY CRT & ANALOG SIGNAL RACK
         ============================================================== -->
         <aside class="analog-rack-unit">
+          <!-- Master Reset Settings Button for quick access -->
+          <div style="margin-bottom: 8px;">
+            <button id="btn-reset-rack" class="hw-btn" style="width: 100%; border-color: var(--led-amber); color: var(--text-ink); font-weight: bold; padding: 7px 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; background: rgba(255, 153, 0, 0.08);" title="Сбросить все настройки, эффекты, модуляцию и колор-грейдинг к исходным значениям">
+              <span id="i18n-reset-rack-btn">↺ СБРОСИТЬ ВСЕ НАСТРОЙКИ</span>
+            </button>
+          </div>
+
           <!-- Top Right Secondary CRT / Modulation Scanner -->
           <div class="waveform-monitor-card">
             <div class="module-title-bar">
@@ -1543,6 +1954,51 @@
                   </div>
                 </div>
               </div>
+
+              <!-- LFO Automation Routing Matrix -->
+              <div style="background: rgba(0,0,0,0.35); border: 1px inset var(--chassis-dark); padding: 6px; margin-top: 4px; display: none;">
+                <div style="font-weight: 800; font-size: 10px; color: var(--vfd-green); margin-bottom: 4px; letter-spacing: 0.05em;">
+                  АВТОМАТИЗАЦИЯ LFO (ПРИВЯЗКА К ПАРАМЕТРАМ):
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                  <label class="toggle-switch-row" style="font-size: 10px; padding: 2px 4px; background: #121410;">
+                    <span>ЯЧЕЙКА</span>
+                    <input type="checkbox" id="toggle-bind-cell" />
+                  </label>
+                  <label class="toggle-switch-row" style="font-size: 10px; padding: 2px 4px; background: #121410;">
+                    <span>ДАТАМОШ</span>
+                    <input type="checkbox" id="toggle-bind-datamosh" />
+                  </label>
+                  <label class="toggle-switch-row" style="font-size: 10px; padding: 2px 4px; background: #121410;">
+                    <span>СТРОКИ</span>
+                    <input type="checkbox" id="toggle-bind-scan" />
+                  </label>
+                  <label class="toggle-switch-row" style="font-size: 10px; padding: 2px 4px; background: #121410;">
+                    <span>RGB СДВИГ</span>
+                    <input type="checkbox" id="toggle-bind-rgb" />
+                  </label>
+                  <label class="toggle-switch-row" style="font-size: 10px; padding: 2px 4px; background: #121410;">
+                    <span>ЗЕРНО</span>
+                    <input type="checkbox" id="toggle-bind-noise" />
+                  </label>
+                  <label class="toggle-switch-row" style="font-size: 10px; padding: 2px 4px; background: #121410;">
+                    <span>МАСШТАБ</span>
+                    <input type="checkbox" id="toggle-bind-typo" />
+                  </label>
+                  <label class="toggle-switch-row" style="font-size: 10px; padding: 2px 4px; background: #121410;">
+                    <span>ДЖИТТЕР</span>
+                    <input type="checkbox" id="toggle-bind-jitter" />
+                  </label>
+                  <label class="toggle-switch-row" style="font-size: 10px; padding: 2px 4px; background: #121410;">
+                    <span>СКОРОСТЬ</span>
+                    <input type="checkbox" id="toggle-bind-speed" />
+                  </label>
+                  <label class="toggle-switch-row" style="font-size: 10px; padding: 2px 4px; background: #121410; grid-column: span 2;">
+                    <span>ЯРКОСТЬ &amp; КОНТРАСТ</span>
+                    <input type="checkbox" id="toggle-bind-bright" />
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1696,16 +2152,48 @@
               </div>
             </div>
 
-            <!-- Dither Boy Algorithm Selection -->
+            <!-- Sacred Glyph Dither Algorithm Selection -->
             <div style="display: flex; flex-direction: column; gap: 4px;">
               <span class="fader-name" id="i18n-dither-lbl">АЛГОРИТМ:</span>
               <select id="select-dither-algo" class="hardware-select">
-                <option value="none">БЕЗ ДИЗЕРИНГА (КВАНТОВАНИЕ)</option>
-                <option value="floyd">FLOYD-STEINBERG (ДИФФУЗИЯ ОШИБКИ)</option>
-                <option value="bayer4" selected>BAYER 4×4 (УПОРЯДОЧЕННЫЙ)</option>
-                <option value="bayer8">BAYER 8×8 (ТОНКИЙ МАТРИЧНЫЙ)</option>
-                <option value="atkinson">ATKINSON (ЧЕТКИЙ MACINTOSH)</option>
-                <option value="halftone">HALFTONE DOT (РАСТРОВАЯ ТОЧКА)</option>
+                <optgroup label="ERROR DIFFUSION (ДИФФУЗИЯ ОШИБКИ)">
+                  <option value="floyd" selected>FLOYD-STEINBERG (ДИФФУЗИЯ)</option>
+                  <option value="serpentine_floyd">SERPENTINE FLOYD (ЗМЕЙКА)</option>
+                  <option value="atkinson">ATKINSON (MACINTOSH)</option>
+                  <option value="jarvis">JARVIS-JUDICE-NINKE (48 ДЕЛ.)</option>
+                  <option value="stucki">STUCKI (42 ДЕЛЕНИЯ)</option>
+                  <option value="burkes">BURKES (32 ДЕЛЕНИЯ)</option>
+                  <option value="sierra3">SIERRA 3-ROW (ТРЕХСТРОЧНЫЙ)</option>
+                  <option value="sierra2">SIERRA 2-ROW (ДВУХСТРОЧНЫЙ)</option>
+                  <option value="sierra_lite">SIERRA LITE (БЫСТРЫЙ)</option>
+                  <option value="false_floyd">FALSE FLOYD-STEINBERG</option>
+                  <option value="fan">FAN (1993 АДАПТИВНЫЙ)</option>
+                  <option value="shiau_fan">SHIAU-FAN (МАТРИЧНЫЙ)</option>
+                  <option value="ostromoukhov">OSTROMOUKHOV (ДИНАМИЧЕСКИЙ)</option>
+                  <option value="gradient_diffusion">GRADIENT DIFFUSION (ВЕКТОРНЫЙ)</option>
+                  <option value="heavy_error">HEAVY DISPERSION (ДИСПЕРСИЯ)</option>
+                </optgroup>
+                <optgroup label="ORDERED DITHERING (УПОРЯДОЧЕННЫЙ)">
+                  <option value="bayer2">BAYER 2×2 (ГРУБЫЙ)</option>
+                  <option value="bayer4">BAYER 4×4 (УПОРЯДОЧЕННЫЙ)</option>
+                  <option value="bayer8">BAYER 8×8 (ТОНКИЙ МАТРИЧНЫЙ)</option>
+                  <option value="bayer16">BAYER 16×16 (ВЫСОКОЕ РАЗРЕШЕНИЕ)</option>
+                  <option value="cluster_dot">CLUSTERED DOT 8×8 (КЛАСТЕР)</option>
+                </optgroup>
+                <optgroup label="PATTERNS (ПАТТЕРНЫ И РАСТРЫ)">
+                  <option value="halftone">HALFTONE DOT (РАСТРОВАЯ ТОЧКА)</option>
+                  <option value="lines_horizontal">ГОРИЗОНТАЛЬНЫЕ ЛИНИИ</option>
+                  <option value="lines_vertical">ВЕРТИКАЛЬНЫЕ ЛИНИИ</option>
+                  <option value="lines_diagonal">ДИАГОНАЛЬНАЯ ШТРИХОВКА</option>
+                  <option value="crosshatch">ПЕРЕКРЕСТНАЯ СЕТКА</option>
+                  <option value="spiral">СПИРАЛЬНЫЙ ВИХРЬ</option>
+                  <option value="stippling">СТИППЛИНГ (ШУМОВЫЕ ТОЧКИ)</option>
+                  <option value="hexagonal">ГЕКСАГОНАЛЬНЫЕ СОТЫ</option>
+                </optgroup>
+                <optgroup label="OTHER (ДРУГИЕ)">
+                  <option value="random">СЛУЧАЙНЫЙ БЕЛЫЙ ШУМ</option>
+                  <option value="none">БЕЗ ДИЗЕРИНГА (КВАНТОВАНИЕ)</option>
+                </optgroup>
               </select>
             </div>
 
@@ -1739,7 +2227,7 @@
               <select id="select-color-mode" class="hardware-select">
                 <option value="palette">ПАЛИТРА (4-8 ЦВЕТОВ)</option>
                 <option value="single">МОНОХРОМНЫЙ ОДИН ЦВЕТ</option>
-                <option value="original">ИСХОДНЫЙ ЦВЕТ ПИКСЕЛЕЙ</option>
+                <option value="rgb">ИСХОДНЫЙ ЦВЕТ ПИКСЕЛЕЙ (RGB)</option>
               </select>
             </div>
 
@@ -1764,22 +2252,26 @@
               <input type="text" id="hex-bg-color" class="manual-glyph-input" value="#040904" style="max-width: 120px; font-size: 14px; padding: 3px 6px;" />
             </div>
 
-            <!-- Professional Color Grading & 3-Way Color Wheels -->
+            <!-- Professional Color Grading & 4-Way RGB Color Wheels -->
             <div class="color-grading-card">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="vfd-label" id="i18n-grade-title">[КОЛОР-ГРЕЙДИНГ: ЦВЕТОВЫЕ КРУГИ 3-WAY]</span>
-                <button id="btn-reset-all-grading" class="wheel-btn-reset" title="Сбросить все настройки грейдинга">СБРОС ↺</button>
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+                <span class="vfd-label" id="i18n-grade-title">[КОЛОР-ГРЕЙДИНГ: ЦВЕТОВЫЕ КРУГИ RGB]</span>
+                <div style="display: flex; gap: 4px; align-items: center;">
+                  <button id="btn-grade-mode-rgb" class="wheel-btn-reset" style="padding: 2px 6px; font-weight: bold;" title="Включить полноцветный режим RGB">RGB</button>
+                  <button id="btn-grade-mode-pal" class="wheel-btn-reset" style="padding: 2px 6px;" title="Режим палитры">ПАЛИТРА</button>
+                  <button id="btn-reset-all-grading" class="wheel-btn-reset" title="Сбросить все настройки грейдинга">СБРОС ↺</button>
+                </div>
               </div>
 
-              <!-- 3-Way Color Wheels Grid: Lift (Shadows), Gamma (Midtones), Gain (Highlights) -->
+              <!-- 4-Way Color Wheels Grid: Lift (Shadows), Gamma (Midtones), Gain (Highlights), Master (Offset) -->
               <div class="color-wheels-grid">
                 <!-- Lift / Shadows -->
                 <div class="color-wheel-box">
                   <div class="color-wheel-header">
-                    <span id="i18n-lift-wheel-lbl">ТЕНИ (LIFT)</span>
+                    <span id="i18n-lift-wheel-lbl">ТЕНИ (LIFT RGB)</span>
                     <button id="btn-reset-lift" class="wheel-btn-reset" title="Сбросить тени">↺</button>
                   </div>
-                  <canvas id="wheel-lift" width="76" height="76" class="color-wheel-canvas"></canvas>
+                  <canvas id="wheel-lift" width="80" height="80" class="color-wheel-canvas"></canvas>
                   <div style="width: 100%; display: flex; flex-direction: column; gap: 2px;">
                     <div style="display: flex; justify-content: space-between; font-size: 10px; color: #888;">
                       <span class="i18n-wheel-level-lbl">УРОВЕНЬ</span>
@@ -1792,10 +2284,10 @@
                 <!-- Gamma / Midtones -->
                 <div class="color-wheel-box">
                   <div class="color-wheel-header">
-                    <span id="i18n-gamma-wheel-lbl">ТОНА (GAMMA)</span>
+                    <span id="i18n-gamma-wheel-lbl">ТОНА (GAMMA RGB)</span>
                     <button id="btn-reset-gamma" class="wheel-btn-reset" title="Сбросить полутона">↺</button>
                   </div>
-                  <canvas id="wheel-gamma" width="76" height="76" class="color-wheel-canvas"></canvas>
+                  <canvas id="wheel-gamma" width="80" height="80" class="color-wheel-canvas"></canvas>
                   <div style="width: 100%; display: flex; flex-direction: column; gap: 2px;">
                     <div style="display: flex; justify-content: space-between; font-size: 10px; color: #888;">
                       <span class="i18n-wheel-level-lbl">УРОВЕНЬ</span>
@@ -1808,16 +2300,32 @@
                 <!-- Gain / Highlights -->
                 <div class="color-wheel-box">
                   <div class="color-wheel-header">
-                    <span id="i18n-gain-wheel-lbl">СВЕТА (GAIN)</span>
+                    <span id="i18n-gain-wheel-lbl">СВЕТА (GAIN RGB)</span>
                     <button id="btn-reset-gain" class="wheel-btn-reset" title="Сбросить света">↺</button>
                   </div>
-                  <canvas id="wheel-gain" width="76" height="76" class="color-wheel-canvas"></canvas>
+                  <canvas id="wheel-gain" width="80" height="80" class="color-wheel-canvas"></canvas>
                   <div style="width: 100%; display: flex; flex-direction: column; gap: 2px;">
                     <div style="display: flex; justify-content: space-between; font-size: 10px; color: #888;">
                       <span class="i18n-wheel-level-lbl">УРОВЕНЬ</span>
                       <span id="val-gain-level">0%</span>
                     </div>
                     <input type="range" id="slider-gain-level" min="-50" max="50" step="1" value="0" />
+                  </div>
+                </div>
+
+                <!-- Master / Offset -->
+                <div class="color-wheel-box">
+                  <div class="color-wheel-header">
+                    <span id="i18n-master-wheel-lbl">ОБЩИЙ (MASTER RGB)</span>
+                    <button id="btn-reset-master" class="wheel-btn-reset" title="Сбросить общий баланс">↺</button>
+                  </div>
+                  <canvas id="wheel-master" width="80" height="80" class="color-wheel-canvas"></canvas>
+                  <div style="width: 100%; display: flex; flex-direction: column; gap: 2px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: #888;">
+                      <span class="i18n-wheel-level-lbl">УРОВЕНЬ</span>
+                      <span id="val-master-level">0%</span>
+                    </div>
+                    <input type="range" id="slider-master-level" min="-50" max="50" step="1" value="0" />
                   </div>
                 </div>
               </div>
@@ -1859,6 +2367,242 @@
               </div>
             </div>
           </div>
+
+          <!-- RACK MODULE: ЭКСПЕРИМЕНТАЛЬНАЯ ТИПОГРАФИКА (MAKE NEUE) -->
+          <div class="rack-panel-box">
+            <div class="module-title-bar">
+              <span>[ТИПОГРАФИКА &amp; ИНЖЕКТ]</span>
+              <span class="hw-led active-green"></span>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="section-preset-bar">
+              <button class="preset-pill-btn" data-preset="preset_neue_braille_matrix">⠿ Брайль</button>
+              <button class="preset-pill-btn" data-preset="preset_neue_typo_dynamic">🔤 Масштаб</button>
+              <button class="preset-pill-btn" data-preset="preset_neue_jitter_chaos">💥 Джиттер</button>
+              <button class="preset-pill-btn" data-preset="preset_neue_custom_inject">💉 Инжект</button>
+            </div>
+
+            <!-- Custom Injection Input Field -->
+            <div style="display: flex; flex-direction: column; gap: 3px; background: rgba(0,0,0,0.25); padding: 6px; border: 1px inset var(--chassis-dark);">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span class="fader-name" style="font-size: 11px; color: var(--vfd-green);">ИНЖЕКТ СИМВОЛОВ (ДО 10):</span>
+                <span id="injection-char-count" style="font-size: 10px; color: var(--text-dim);">0 / 10 символов</span>
+              </div>
+              <div style="display: flex; gap: 4px; align-items: center; margin-top: 2px;">
+                <input type="text" id="input-custom-injection" class="manual-glyph-input" maxlength="10" placeholder="напр. ★░▓█†‡⚡☠⚜⚔" style="font-size: 13px; padding: 3px 6px;" />
+                <button id="btn-apply-injection" class="hw-btn hw-btn-green" style="padding: 3px 8px; font-size: 11px; white-space: nowrap;">✓</button>
+                <button id="btn-clear-injection" class="hw-btn" style="padding: 3px 8px; font-size: 11px; white-space: nowrap;">✕</button>
+              </div>
+            </div>
+
+            <!-- Dynamic Typo Scale & Jitter Knobs -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">ДИНАМИЧЕСКИЙ МАСШТАБ</span>
+                  <span class="vfd-readout-box" id="val-typo-scale" style="font-size: 10px;">0%</span>
+                </div>
+                <input type="range" id="slider-typo-scale" min="0" max="100" step="5" value="0" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">ХАОТИЧНЫЙ ДЖИТТЕР</span>
+                  <span class="vfd-readout-box" id="val-jitter" style="font-size: 10px;">0 px</span>
+                </div>
+                <input type="range" id="slider-jitter" min="0" max="50" step="1" value="0" />
+              </div>
+            </div>
+          </div>
+
+          <!-- RACK MODULE: ВОЛНЫ И ГЕНЕРАЦИЯ -->
+          <div class="rack-panel-box">
+            <div class="module-title-bar">
+              <span>[ВОЛНЫ &amp; ГЕНЕРАЦИЯ СИГНАЛА]</span>
+              <label class="toggle-switch" style="width: 36px; height: 18px;">
+                <input type="checkbox" id="toggle-shadr-active" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span class="vfd-label" style="font-size: 10px;">АЛГОРИТМ ВОЛН:</span>
+              <select id="select-shadr-wave" class="hardware-select" style="font-size: 11px; padding: 3px 4px;">
+                <option value="harmonic" selected>ГАРМОНИЧЕСКИЕ (HARMONIC SINE)</option>
+                <option value="mandelbrot">ФРАКТАЛЬНЫЕ (MANDELBROT)</option>
+                <option value="plasma">ИНТЕРФЕРЕНЦИЯ ПЛАЗМЫ</option>
+                <option value="lissajous">ОРБИТА ЛИССАЖУ</option>
+              </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">СКОРОСТЬ</span>
+                  <span class="vfd-readout-box" id="val-shadr-speed" style="font-size: 10px;">1.0×</span>
+                </div>
+                <input type="range" id="slider-shadr-speed" min="0.1" max="5.0" step="0.1" value="1.0" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">ЧАСТОТА</span>
+                  <span class="vfd-readout-box" id="val-shadr-freq" style="font-size: 10px;">2.0</span>
+                </div>
+                <input type="range" id="slider-shadr-freq" min="0.5" max="10.0" step="0.2" value="2.0" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">ШЛЕЙФ</span>
+                  <span class="vfd-readout-box" id="val-shadr-feedback" style="font-size: 10px;">0%</span>
+                </div>
+                <input type="range" id="slider-shadr-feedback" min="0" max="95" step="5" value="0" />
+              </div>
+            </div>
+          </div>
+
+          <!-- RACK MODULE: ПРОЦЕДУРНЫЕ ТЕКСТУРЫ -->
+          <div class="rack-panel-box">
+            <div class="module-title-bar">
+              <span>[ПРОЦЕДУРНЫЙ ШУМ &amp; ТЕКСТУРЫ]</span>
+              <label class="toggle-switch" style="width: 36px; height: 18px;">
+                <input type="checkbox" id="toggle-aikizi-active" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span class="vfd-label" style="font-size: 10px;">ТИП ТЕКСТУРЫ:</span>
+              <select id="select-aikizi-type" class="hardware-select" style="font-size: 11px; padding: 3px 4px;">
+                <option value="perlin" selected>PERLIN / SIMPLEX NOISE (ПЛАВНЫЙ)</option>
+                <option value="dirt">ORGANIC DIRT (ОРГАНИЧЕСКАЯ ГРЯЗЬ)</option>
+                <option value="smoke">TURBULENT SMOKE (КЛУБЯЩИЙСЯ ДЫМ)</option>
+                <option value="dust">COSMIC DUST (ВЫСОКОЗЕРНИСТАЯ ПЫЛЬ)</option>
+              </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">РАЗМЕР</span>
+                  <span class="vfd-readout-box" id="val-aikizi-scale" style="font-size: 10px;">12 px</span>
+                </div>
+                <input type="range" id="slider-aikizi-scale" min="1" max="50" step="1" value="12" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">ДИНАМИКА</span>
+                  <span class="vfd-readout-box" id="val-aikizi-evolution" style="font-size: 10px;">1.0×</span>
+                </div>
+                <input type="range" id="slider-aikizi-evolution" min="0.1" max="5.0" step="0.1" value="1.0" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">МИКС</span>
+                  <span class="vfd-readout-box" id="val-aikizi-intensity" style="font-size: 10px;">40%</span>
+                </div>
+                <input type="range" id="slider-aikizi-intensity" min="5" max="100" step="5" value="40" />
+              </div>
+            </div>
+          </div>
+
+          <!-- RACK MODULE: ГЛИТЧ И СБОИ СИГНАЛА (GLCHLAB) -->
+          <div class="rack-panel-box">
+            <div class="module-title-bar">
+              <span>[ГЛИТЧ &amp; СБОИ СИГНАЛА]</span>
+              <label class="toggle-switch" style="width: 36px; height: 18px;">
+                <input type="checkbox" id="toggle-glitch-active" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="section-preset-bar">
+              <button class="preset-pill-btn" data-preset="preset_glitch_datamosh_break">📼 Датамош</button>
+              <button class="preset-pill-btn" data-preset="preset_glitch_scan_corruption">📺 Выпадение</button>
+              <button class="preset-pill-btn" data-preset="preset_glitch_rgb_split">🕶 RGB сдвиг</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">ДАТАМОШ</span>
+                  <span class="vfd-readout-box" id="val-glitch-datamosh" style="font-size: 10px;">0%</span>
+                </div>
+                <input type="range" id="slider-glitch-datamosh" min="0" max="100" step="5" value="0" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">СТРОКИ</span>
+                  <span class="vfd-readout-box" id="val-glitch-scan" style="font-size: 10px;">0%</span>
+                </div>
+                <input type="range" id="slider-glitch-scan" min="0" max="100" step="5" value="0" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">ХРОМАТИКА</span>
+                  <span class="vfd-readout-box" id="val-glitch-rgb" style="font-size: 10px;">0 px</span>
+                </div>
+                <input type="range" id="slider-glitch-rgb" min="0" max="50" step="1" value="0" />
+              </div>
+            </div>
+          </div>
+
+          <!-- RACK MODULE: АБСТРАКТНЫЕ ТРАНСФОРМАЦИИ (ABSTRACT) -->
+          <div class="rack-panel-box">
+            <div class="module-title-bar">
+              <span>[АБСТРАКТНЫЕ ТРАНСФОРМАЦИИ]</span>
+              <label class="toggle-switch" style="width: 36px; height: 18px;">
+                <input type="checkbox" id="toggle-abstract-active" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="section-preset-bar">
+              <button class="preset-pill-btn" data-preset="preset_abstract_fluid_swirl">🌀 Завихрения</button>
+              <button class="preset-pill-btn" data-preset="preset_abstract_kaleido_mirror">🔮 Калейдоскоп</button>
+              <button class="preset-pill-btn" data-preset="preset_abstract_infinite_tunnel">🌌 Туннель</button>
+              <button class="preset-pill-btn" data-preset="preset_abstract_pixel_sort">📊 Pixel Sort</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">ЗАВИХРЕНИЯ</span>
+                  <span class="vfd-readout-box" id="val-abstract-warp" style="font-size: 10px;">0%</span>
+                </div>
+                <input type="range" id="slider-abstract-warp" min="0" max="100" step="5" value="0" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">КАЛЕЙДОСКОП</span>
+                  <span class="vfd-readout-box" id="val-abstract-kaleido" style="font-size: 10px;">ВЫКЛ</span>
+                </div>
+                <input type="range" id="slider-abstract-kaleido" min="0" max="8" step="2" value="0" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">ЭХО-ТУННЕЛЬ</span>
+                  <span class="vfd-readout-box" id="val-abstract-echo" style="font-size: 10px;">0%</span>
+                </div>
+                <input type="range" id="slider-abstract-echo" min="0" max="100" step="5" value="0" />
+              </div>
+              <div class="fader-strip">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">ПИКСЕЛЬ-СОРТ</span>
+                  <span class="vfd-readout-box" id="val-abstract-sort" style="font-size: 10px;">0%</span>
+                </div>
+                <input type="range" id="slider-abstract-sort" min="0" max="100" step="5" value="0" />
+              </div>
+              <div class="fader-strip" style="grid-column: span 2;">
+                <div class="fader-meta-row">
+                  <span class="fader-name" style="font-size: 10px;">СПЕКТРАЛЬНЫЙ ДРЕЙФ</span>
+                  <span class="vfd-readout-box" id="val-abstract-drift" style="font-size: 10px;">0%</span>
+                </div>
+                <input type="range" id="slider-abstract-drift" min="0" max="100" step="5" value="0" />
+              </div>
+            </div>
+          </div>
         </aside>
       </div>
 
@@ -1869,7 +2613,7 @@
         <!-- Deck 1 (Expanded, 1fr): Glyph Database & Manual Symbol Input -->
         <section class="deck-keypad-module">
           <div class="module-title-bar">
-            <span id="i18n-deck1-title">[БАЗА ГЛИФОВ &amp; РУЧНОЙ ВВОД СИМВОЛОВ]</span>
+            <span id="i18n-deck1-title">[БАЗА ГЛИФОВ &amp; ТАЙМЛАЙН ЗАПИСИ АНИМАЦИИ]</span>
             <div style="display: flex; gap: 8px; align-items: center;">
               <span class="vfd-label" id="i18n-active-lbl">АКТИВНО:</span>
               <span id="active-glyph-count" style="color: var(--vfd-green); font-family: var(--font-mono); font-size: 14px; font-weight: 800;">8 glyphs</span>
@@ -1881,74 +2625,117 @@
             <!-- Dynamically populated -->
           </div>
 
-          <!-- Split: Curated Sets on Left + Manual Custom Input & Ribbon on Right -->
+          <!-- Split: Curated Sets on Left + Timeline & Live REC on Right -->
           <div class="glyph-deck-split">
             <!-- Left: Curated Sets -->
             <div class="glyph-sets-container" id="glyph-sets-list">
               <!-- Dynamically populated -->
             </div>
 
-            <!-- Right: Dedicated Manual Input Station & Interactive Ribbon -->
-            <div class="manual-input-station">
-              <div class="manual-input-header">
-                <span class="vfd-label" id="i18n-manual-title">РУЧНОЙ ВВОД СИМВОЛОВ (ПРОИЗВОЛЬНЫЙ АЛФАВИТ):</span>
-                <span class="hw-led active-green" style="margin-left: 6px;"></span>
+            <!-- Right: Dedicated Animation Timeline & Live REC Studio -->
+            <div class="timeline-station" id="timeline-station">
+              <!-- Timeline Header & Status -->
+              <div class="timeline-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="vfd-label" id="i18n-timeline-title">[ТАЙМЛАЙН ЗАПИСИ АНИМАЦИИ // LIVE REC]</span>
+                  <span id="timeline-rec-indicator" class="timeline-rec-dot"></span>
+                  <span id="timeline-status-badge" class="timeline-status-badge">ГОТОВ К ЗАПИСИ</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span id="timeline-counter-readout" class="vfd-readout-box" style="font-size: 12px; min-width: 140px; text-align: center; color: var(--vfd-green);">0 / 0 КДР (0.0s)</span>
+                  <button id="btn-timeline-clear" class="hw-btn" style="padding: 2px 8px; font-size: 11px;" title="Очистить записанные кадры таймлайна">
+                    ОЧИСТИТЬ ✕
+                  </button>
+                </div>
               </div>
 
-              <!-- Input text row -->
-              <div class="manual-input-box">
-                <input
-                  type="text"
-                  id="manual-glyph-input"
-                  class="manual-glyph-input"
-                  placeholder="Введите любые символы (напр.  .:-=+*#%@█ или руны)..."
-                  value=" .:+*#%@"
-                  autocomplete="off"
-                  spellcheck="false"
-                />
+              <!-- Transport Controls Row -->
+              <div class="timeline-transport-bar">
+                <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                  <!-- REC Button -->
+                  <button id="btn-timeline-rec" class="hw-btn timeline-btn-rec" title="Нажмите REC, затем меняйте любые ползунки (яркость, размер ячейки, контраст, цвет и т.д.) — все изменения запишутся в анимацию!">
+                    <span class="rec-icon">●</span> <span id="lbl-timeline-rec">REC (ЗАПИСЬ)</span>
+                  </button>
+
+                  <!-- Play / Pause Button -->
+                  <button id="btn-timeline-play" class="hw-btn hw-btn-green" title="Воспроизвести / Приостановить записанную анимацию">
+                    <span id="lbl-timeline-play">▶ PLAY</span>
+                  </button>
+
+                  <!-- Step Navigation -->
+                  <button id="btn-timeline-start" class="hw-btn" style="padding: 3px 7px; font-size: 12px;" title="В начало (кадр 1)">
+                    ⏮
+                  </button>
+                  <button id="btn-timeline-prev" class="hw-btn" style="padding: 3px 7px; font-size: 12px;" title="Предыдущий кадр">
+                    ◀
+                  </button>
+                  <button id="btn-timeline-next" class="hw-btn" style="padding: 3px 7px; font-size: 12px;" title="Следующий кадр">
+                    ▶
+                  </button>
+                  <button id="btn-timeline-end" class="hw-btn" style="padding: 3px 7px; font-size: 12px;" title="В конец">
+                    ⏭
+                  </button>
+
+                  <!-- FPS Select -->
+                  <div style="display: flex; align-items: center; gap: 4px; margin-left: 3px;">
+                    <span style="font-size: 10px; color: var(--text-dim);" id="i18n-timeline-fps-lbl">FPS:</span>
+                    <select id="select-timeline-fps" class="hardware-select" style="font-size: 11px; padding: 2px 4px;">
+                      <option value="15">15</option>
+                      <option value="25" selected>25</option>
+                      <option value="30">30</option>
+                    </select>
+                  </div>
+
+                  <!-- Loop Toggle -->
+                  <label style="display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--text-dim); cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="toggle-timeline-loop" checked style="accent-color: var(--vfd-green); cursor: pointer;" />
+                    <span id="i18n-timeline-loop-lbl">ЦИКЛ</span>
+                  </label>
+                </div>
+
+                <!-- Export Action Buttons -->
+                <div style="display: flex; align-items: center; gap: 5px;">
+                  <button id="btn-timeline-export-gif" class="hw-btn hw-btn-amber" style="padding: 4px 10px; font-size: 12px; font-weight: bold;" title="Экспортировать записанные кадры таймлайна в качественный зацикленный GIF">
+                    💾 <span id="lbl-timeline-export-gif">СКАЧАТЬ GIF</span>
+                  </button>
+                  <button id="btn-timeline-export-webm" class="hw-btn" style="border-color: #ff4433; color: #ff6655; padding: 4px 10px; font-size: 12px; font-weight: bold;" title="Экспортировать таймлайн в WebM видео">
+                    🎬 <span id="lbl-timeline-export-webm">СКАЧАТЬ WEBM</span>
+                  </button>
+                </div>
               </div>
 
-              <!-- Quick Action Tool Buttons -->
-              <div class="manual-actions-row">
-                <button id="btn-reverse-glyphs" class="hw-btn" title="Инвертировать порядок глифов (от светлого к темному / наоборот)">
-                  <span id="i18n-btn-reverse">РЕВЕРС ⇄</span>
-                </button>
-                <button id="btn-reset-to-set" class="hw-btn" title="Загрузить символы из выбранного набора">
-                  <span id="i18n-btn-reset-set">ИЗ НАБОРА ↺</span>
-                </button>
-                <button id="btn-clear-glyphs" class="hw-btn" title="Очистить строку ввода">
-                  <span id="i18n-btn-clear">ОЧИСТИТЬ ✕</span>
-                </button>
-                <button id="btn-copy-glyphs" class="hw-btn" title="Скопировать строку символов в буфер">
-                  <span id="i18n-btn-copy">КОПИРОВАТЬ 📋</span>
-                </button>
+              <!-- Interactive Timeline Scrubber Track -->
+              <div class="timeline-track-wrap">
+                <div class="timeline-ruler" id="timeline-ruler">
+                  <span>0s</span>
+                  <span>1s</span>
+                  <span>2s</span>
+                  <span>3s</span>
+                  <span>4s</span>
+                  <span>5s</span>
+                  <span>6s</span>
+                  <span>7s</span>
+                  <span>8s</span>
+                </div>
+                <div class="timeline-scrubber-container">
+                  <input
+                    type="range"
+                    id="timeline-scrubber"
+                    class="timeline-slider"
+                    min="0"
+                    max="0"
+                    value="0"
+                    disabled
+                  />
+                  <canvas id="timeline-track-canvas" height="24" class="timeline-track-canvas"></canvas>
+                </div>
               </div>
 
-              <!-- Live Interactive Character Ribbon -->
-              <div class="glyph-ribbon" id="glyph-ribbon">
-                <!-- Dynamically populated -->
+              <!-- Helper Guide Strip -->
+              <div class="timeline-helper-hint" id="timeline-helper-hint">
+                💡 <span id="i18n-timeline-hint">Нажмите <strong>REC</strong>, затем меняйте любые ползунки (яркость, cell size, контраст, цвет) — все действия запишутся в анимацию!</span>
               </div>
             </div>
-          </div>
-        </section>
-
-        <!-- Deck 3 (Right, 340px): Media Ingest & GIF Station -->
-        <section class="deck-ingest-module">
-          <div class="module-title-bar">
-            <span id="i18n-deck3-title">[ОТСЕК ЗАГРУЗКИ GIF &amp; ИЗОБРАЖЕНИЙ]</span>
-            <span class="hw-led active-amber"></span>
-          </div>
-
-          <!-- Cassette Bay Door -->
-          <div class="cassette-door-slot" id="btn-upload-file" title="Нажмите для загрузки GIF или картинки">
-            <span class="door-title" id="i18n-slot-prompt">▼ ЗАГРУЗИТЬ GIF ИЛИ КАРТИНКУ ▼</span>
-            <span class="door-sub" id="i18n-slot-sub">DRAG &amp; DROP / КЛИК ДЛЯ ОБЗОРА</span>
-          </div>
-
-          <div class="vent-grill" style="margin-top: 4px;"></div>
-          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 4px;">
-            <span>SERIAL: 9204-SONY-SGI</span>
-            <span>GIF89a / RASTER READY</span>
           </div>
         </section>
       </footer>
@@ -1981,6 +2768,34 @@
             <div style="font-size: 13px; color: var(--text-ink); margin-top: 3px;" id="i18n-gif-box-desc">
               Запись текущей анимации в оптимизированный зацикленный файл GIF89a.
             </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; background: rgba(0,0,0,0.3); padding: 8px; border: 1px inset var(--chassis-dark);">
+              <div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 3px;" id="i18n-gif-res-lbl">РАЗРЕШЕНИЕ GIF:</div>
+                <select id="select-gif-resolution" class="hardware-select" style="width: 100%; font-size: 12px; padding: 4px;">
+                  <option value="480">480p (Компактный)</option>
+                  <option value="720" selected>720p HD (Высокое)</option>
+                  <option value="1080">1080p FHD (Максимальное)</option>
+                  <option value="1440">1440p 2K (Сверхчеткое)</option>
+                  <option value="native">1:1 Исходный холст</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 3px;" id="i18n-gif-qual-lbl">КАЧЕСТВО ЦВЕТА:</div>
+                <select id="select-gif-quality" class="hardware-select" style="width: 100%; font-size: 12px; padding: 4px;">
+                  <option value="256" selected>256 цветов (Max HD)</option>
+                  <option value="128">128 цветов (Высокое)</option>
+                  <option value="64">64 цвета (Компакт)</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 3px;" id="i18n-gif-fps-lbl">ЧАСТОТА КАДРОВ:</div>
+                <select id="select-gif-fps" class="hardware-select" style="width: 100%; font-size: 12px; padding: 4px;">
+                  <option value="15">15 FPS</option>
+                  <option value="25" selected>25 FPS (Плавное)</option>
+                  <option value="30">30 FPS (Кино 30p)</option>
+                </select>
+              </div>
+            </div>
             <button id="btn-modal-export-gif" class="hw-btn hw-btn-amber" style="margin-top: 10px; padding: 10px 16px; font-size: 15px; width: 100%;">
               💾 <span id="i18n-gif-download-btn">СКАЧАТЬ GIF</span>
             </button>
@@ -1994,12 +2809,32 @@
                 <span class="vfd-label" style="font-size: 12px;" id="i18n-image-format-lbl">ФОРМАТ:</span>
                 <select id="select-image-format" class="hardware-select" style="font-size: 13px; padding: 2px 6px;">
                   <option value="png" selected>PNG (LOSSLESS)</option>
-                  <option value="jpeg">JPEG (RGB 95%)</option>
+                  <option value="jpeg">JPEG (RGB)</option>
                 </select>
               </div>
             </div>
             <div style="font-size: 13px; color: var(--text-ink); margin-top: 3px;" id="i18n-image-box-desc">
               Экспорт текущего растрового кадра в высоком разрешении.
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; background: rgba(0,0,0,0.3); padding: 8px; border: 1px inset var(--chassis-dark);">
+              <div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 3px;" id="i18n-image-scale-lbl">МАСШТАБ / РАЗРЕШЕНИЕ:</div>
+                <select id="select-image-scale" class="hardware-select" style="width: 100%; font-size: 12px; padding: 4px;">
+                  <option value="1">1x (100% Экранное)</option>
+                  <option value="2" selected>2x (200% Высокое HD)</option>
+                  <option value="4">4x (400% Ultra HD 4K)</option>
+                  <option value="8">8x (800% Ultra Print)</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 3px;" id="i18n-image-qual-lbl">КАЧЕСТВО СЖАТИЯ:</div>
+                <select id="select-image-quality" class="hardware-select" style="width: 100%; font-size: 12px; padding: 4px;">
+                  <option value="1.0" selected>100% (Без потерь / Max)</option>
+                  <option value="0.95">95% (Высокое качество)</option>
+                  <option value="0.85">85% (Оптимальный баланс)</option>
+                  <option value="0.75">75% (Компактный JPEG)</option>
+                </select>
+              </div>
             </div>
             <button id="btn-export-image" class="hw-btn hw-btn-green" style="margin-top: 10px; padding: 10px 16px; font-size: 15px; width: 100%;">
               🖼️ <span id="i18n-image-download-btn">СКАЧАТЬ PNG / JPEG</span>
@@ -2084,12 +2919,8 @@
         <div class="welcome-screw screw-bl">+</div>
         <div class="welcome-screw screw-br">+</div>
 
-        <!-- Terminal Header -->
+        <!-- Terminal Header Close -->
         <div class="welcome-header">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--vfd-green); box-shadow: 0 0 8px var(--vfd-green-glow); animation: blink 1.2s infinite ease-in-out;"></span>
-            <span id="i18n-welcome-term-title">SACRED GLYPH // INITIALIZATION INGEST BAY</span>
-          </div>
           <button id="btn-close-welcome" class="hw-btn" style="padding: 2px 8px; font-size: 13px;" title="Закрыть меню и перейти в студию">✕</button>
         </div>
 
@@ -2098,7 +2929,7 @@
           <!-- Majestic Brand Title in CS Denisa Halfpixel Top Demo -->
           <div class="welcome-brand-wrap">
             <h1 class="welcome-brand-title">Sacred Glyph</h1>
-            <div class="welcome-brand-sub" id="i18n-welcome-sub">MEDIEVAL ASCII &amp; DITHER WORKSTATION // GRAPHICS PIPELINE</div>
+            <div class="welcome-brand-sub" id="i18n-welcome-sub">Графический ASCII редактор</div>
           </div>
 
           <!-- Drag and Drop Interactive Card -->
@@ -2110,13 +2941,6 @@
             <div class="welcome-drop-hint" id="i18n-welcome-drop-hint">
               или перетащите файл (.GIF, .PNG, .JPG, .WEBP) прямо в это окно
             </div>
-          </div>
-
-          <!-- Actions Row: Skip to sample studio -->
-          <div class="welcome-actions-row">
-            <button id="btn-welcome-skip" class="hw-btn welcome-skip-btn" type="button">
-              <span id="i18n-welcome-skip-btn">▶ ВОЙТИ В СТУДИЮ С ОБРАЗЦОМ</span>
-            </button>
           </div>
         </div>
       </div>

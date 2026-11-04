@@ -2,7 +2,7 @@ import './cs-denisa.css';
 
 // -------------------------------------------------------------
 // SACRED GLYPH BRAND ANIMATION
-// Gothic Blackletter Typography with Interactive Crumble & Reconstitution Physics
+// Gothic Blackletter Typography with Interactive ASCII & Pixel Crumble Physics
 // -------------------------------------------------------------
 
 interface Shard {
@@ -16,9 +16,9 @@ interface Shard {
   vAngle: number;   // Angular velocity
   size: number;     // Particle size
   alpha: number;    // Opacity
-  color: string;    // CSS color
-  rune?: string;    // Occasional sacred symbol (e.g. †, ‡, ✦, ·, ᛟ)
-  isRune: boolean;
+  color: string;    // CSS color sampled from text gradient
+  char?: string;    // ASCII character (e.g. ':', '·', '✦', '+', '░', '▒', '*', '#', '†', '‡')
+  isChar: boolean;
   mass: number;     // Physical mass for varied inertia
 }
 
@@ -31,10 +31,14 @@ interface Ember {
   decay: number;
   size: number;
   color: string;
+  char: string;
 }
+
+const ASCII_GLYPHS = [':', '·', '✦', '+', '░', '▒', '*', '#', '†', '‡', '✧', '%', 'x', '▪', '▫'];
 
 export class SacredGlyphBrand {
   private container: HTMLElement | null = null;
+  private h1Element: HTMLElement | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private shards: Shard[] = [];
@@ -44,27 +48,25 @@ export class SacredGlyphBrand {
   private mouseY: number = -999;
   private animFrameId: number | null = null;
   private isResting: boolean = true;
-  private width: number = 620;
-  private height: number = 72;
-  private fontSize: number = 54;
+  private width: number = 660;
+  private height: number = 130;
+  private fontSize: number = 76;
   private dpr: number = 1;
-  private titleText: string = 'Sacred Glyph';
+  private titleText: string = '[APP_NAME] // MULTI-ENGINE SYSTEM';
   private themeObserver: MutationObserver | null = null;
 
-  constructor(containerId: string = 'start-menu-brand', options?: { width?: number; height?: number; fontSize?: number }) {
-    this.container = document.getElementById(containerId);
+  constructor(containerId: string = 'welcome-brand-anim-box') {
+    this.container = document.getElementById(containerId) || document.getElementById('welcome-brand-wrap');
     if (!this.container) return;
 
-    if (options?.width) this.width = options.width;
-    if (options?.height) this.height = options.height;
-    if (options?.fontSize) this.fontSize = options.fontSize;
+    this.h1Element = this.container.querySelector('h1') || document.getElementById('welcome-brand-title');
 
     this.canvas = this.container.querySelector('canvas') ||
-      document.getElementById('start-menu-brand-canvas') as HTMLCanvasElement ||
-      document.getElementById('brand-canvas') as HTMLCanvasElement;
+      document.getElementById('welcome-brand-canvas') as HTMLCanvasElement;
     if (!this.canvas) {
       this.canvas = document.createElement('canvas');
-      this.canvas.id = 'start-menu-brand-canvas';
+      this.canvas.id = 'welcome-brand-canvas';
+      this.canvas.className = 'welcome-brand-canvas';
       this.container.appendChild(this.canvas);
     }
 
@@ -75,33 +77,26 @@ export class SacredGlyphBrand {
     this.bindEvents();
     this.observeTheme();
 
-    // Ensure gothic and pixel font is loaded before initial rasterization
+    // Ensure gothic & pixel font is loaded before initial rasterization
     this.ensureFontsAndInit();
-  }
-
-  public setTitle(text: string) {
-    if (text && text !== this.titleText) {
-      this.titleText = text;
-      this.rasterizeText();
-      this.drawIntact();
-    }
   }
 
   public refresh() {
     this.setupSizing();
     this.rasterizeText();
-    if (this.isResting) {
-      this.drawIntact();
-    }
   }
 
   private setupSizing() {
-    if (!this.canvas) return;
+    if (!this.canvas || !this.container) return;
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const availableWidth = this.container ? (this.container.clientWidth || 620) : 620;
-    this.width = Math.max(340, Math.min(availableWidth, 640));
-    this.height = 72;
-    this.fontSize = this.width < 500 ? 44 : 54;
+
+    const rect = this.h1Element ? this.h1Element.getBoundingClientRect() : this.container.getBoundingClientRect();
+    const targetW = Math.max(600, Math.min(rect.width + 160, 920));
+    const targetH = Math.max(100, Math.min(rect.height + 60, 150));
+
+    this.width = Math.round(targetW);
+    this.height = Math.round(targetH);
+    this.fontSize = Math.min(44, Math.floor(targetW / 21));
 
     this.canvas.width = Math.round(this.width * this.dpr);
     this.canvas.height = Math.round(this.height * this.dpr);
@@ -122,23 +117,16 @@ export class SacredGlyphBrand {
         (document as any).fonts.load(`${this.fontSize}px UnifrakturMaguntia`)
       ]).then(() => {
         this.rasterizeText();
-        this.drawIntact();
       }).catch(() => {
         this.rasterizeText();
-        this.drawIntact();
       });
 
-      // Also listen on document.fonts.ready for late font resolution
       (document as any).fonts.ready.then(() => {
         this.rasterizeText();
-        if (this.isResting) {
-          this.drawIntact();
-        }
       });
     } else {
       setTimeout(() => {
         this.rasterizeText();
-        this.drawIntact();
       }, 150);
     }
   }
@@ -146,32 +134,12 @@ export class SacredGlyphBrand {
   private observeTheme() {
     this.themeObserver = new MutationObserver(() => {
       this.rasterizeText();
-      if (this.isResting) {
-        this.drawIntact();
-      }
     });
 
     this.themeObserver.observe(document.body, {
       attributes: true,
       attributeFilter: ['data-theme', 'class']
     });
-  }
-
-  private getThemeColor(): { primary: string; accent: string; glow: string } {
-    const isDark = document.body.getAttribute('data-theme') === 'dark';
-    if (isDark) {
-      return {
-        primary: '#f0f3e8',
-        accent: '#00ff66',
-        glow: 'rgba(0, 255, 102, 0.45)'
-      };
-    } else {
-      return {
-        primary: '#161714',
-        accent: '#008833',
-        glow: 'rgba(0, 136, 51, 0.3)'
-      };
-    }
   }
 
   private rasterizeText() {
@@ -181,28 +149,38 @@ export class SacredGlyphBrand {
     const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
     if (!offCtx) return;
 
-    const colors = this.getThemeColor();
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
 
-    // Render Gothic and pixel text to offscreen canvas
     offCtx.clearRect(0, 0, this.width, this.height);
     offCtx.textAlign = 'center';
     offCtx.textBaseline = 'middle';
-    offCtx.font = `400 ${this.fontSize}px "CS Denisa Halfpixel Top Demo", "UnifrakturCook", "UnifrakturMaguntia", serif`;
-    offCtx.fillStyle = colors.primary;
+    offCtx.font = `400 ${this.fontSize}px "CS Denisa Halfpixel Top Demo", "UnifrakturCook", monospace, serif`;
 
     const centerX = this.width / 2;
     const centerY = this.height / 2;
+
+    // Create vertical gradient matching theme
+    const grad = offCtx.createLinearGradient(0, centerY - this.fontSize * 0.45, 0, centerY + this.fontSize * 0.45);
+    if (isDark) {
+      grad.addColorStop(0, '#cfcefe');
+      grad.addColorStop(0.45, '#8f8eec');
+      grad.addColorStop(1, '#5956cb');
+    } else {
+      grad.addColorStop(0, '#ecc3f4');
+      grad.addColorStop(0.45, '#be75c8');
+      grad.addColorStop(1, '#8f4699');
+    }
+    offCtx.fillStyle = grad;
 
     offCtx.fillText(this.titleText, centerX, centerY);
 
     const imgData = offCtx.getImageData(0, 0, this.width, this.height);
     const data = imgData.data;
 
-    const sacredRunes = ['†', '‡', '✦', '·', '✧', 'ᛟ', 'ᚱ', '𐍈', '░'];
     const newShards: Shard[] = [];
 
-    // Sample the text pixels at a fine 2.5px step to generate interactive shards
-    const step = 2.5;
+    // Sample the text pixels at a fine 2.8px grid step to generate ASCII & pixel particles
+    const step = 2.8;
     for (let y = 1; y < this.height - 1; y += step) {
       for (let x = 1; x < this.width - 1; x += step) {
         const px = Math.floor(x);
@@ -211,13 +189,14 @@ export class SacredGlyphBrand {
         const alpha = data[idx + 3];
 
         if (alpha > 45) {
-          const isSpecialRune = Math.random() < 0.08;
-          const isAccent = Math.random() < 0.12;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          const colorStr = `rgb(${r}, ${g}, ${b})`;
 
-          let shardColor = colors.primary;
-          if (isAccent) {
-            shardColor = colors.accent;
-          }
+          // 55% ASCII characters, 45% square pixel blocks
+          const isChar = Math.random() < 0.55;
+          const char = isChar ? ASCII_GLYPHS[Math.floor(Math.random() * ASCII_GLYPHS.length)] : undefined;
 
           newShards.push({
             ox: x,
@@ -228,12 +207,12 @@ export class SacredGlyphBrand {
             vy: 0,
             angle: 0,
             vAngle: 0,
-            size: isSpecialRune ? 3.6 : 2.2 + Math.random() * 1.3,
+            size: isChar ? 3.4 : 2.5 + Math.random() * 1.5,
             alpha: alpha / 255,
-            color: shardColor,
-            rune: isSpecialRune ? sacredRunes[Math.floor(Math.random() * sacredRunes.length)] : undefined,
-            isRune: isSpecialRune,
-            mass: 0.8 + Math.random() * 0.6
+            color: colorStr,
+            char: char,
+            isChar: isChar,
+            mass: 0.8 + Math.random() * 0.7
           });
         }
       }
@@ -242,66 +221,42 @@ export class SacredGlyphBrand {
     this.shards = newShards;
   }
 
-  private drawIntact() {
-    if (!this.ctx) return;
-    this.ctx.clearRect(0, 0, this.width, this.height);
-
-    const colors = this.getThemeColor();
-    const centerX = this.width / 2;
-    const centerY = this.height / 2;
-
-    this.ctx.save();
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.font = `400 ${this.fontSize}px "CS Denisa Halfpixel Top Demo", "UnifrakturCook", "UnifrakturMaguntia", serif`;
-
-    // Subtle atmospheric shadow
-    this.ctx.shadowColor = colors.glow;
-    this.ctx.shadowBlur = 4;
-    this.ctx.fillStyle = colors.primary;
-    this.ctx.fillText(this.titleText, centerX, centerY);
-
-    // Subtle ornate flank cross marks
-    this.ctx.font = '18px "UnifrakturCook", "UnifrakturMaguntia", serif';
-    this.ctx.fillStyle = colors.accent;
-    this.ctx.shadowBlur = 2;
-    this.ctx.fillText('†', 22, centerY);
-    this.ctx.fillText('†', this.width - 22, centerY);
-
-    this.ctx.restore();
-    this.isResting = true;
-  }
-
-  private triggerCrumble(mx: number, my: number) {
+  private triggerCrumble(mx: number, my: number, burstPower: number = 1.0) {
     this.isResting = false;
-    const colors = this.getThemeColor();
 
-    // Give each shard a shatter impulse away from the entry point
+    // Show canvas overlay and hide static h1 text
+    if (this.canvas) this.canvas.style.opacity = '1';
+    if (this.h1Element) this.h1Element.style.opacity = '0';
+
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    const accentColor = isDark ? '#8f8eec' : '#be75c8';
+
+    // Disintegrate each shard with radial impulse away from cursor
     for (const s of this.shards) {
       const dx = s.x - mx;
       const dy = s.y - my;
       const dist = Math.hypot(dx, dy) || 1;
 
-      // Blast force drops off slightly with distance
-      const blastPower = (3.5 + Math.random() * 4.5) / s.mass;
-      const blastAngle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.9;
+      const blastPower = ((4.0 + Math.random() * 4.5) * burstPower) / s.mass;
+      const blastAngle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.8;
 
       s.vx = Math.cos(blastAngle) * blastPower + (Math.random() - 0.5) * 3;
-      s.vy = Math.sin(blastAngle) * blastPower + (Math.random() - 0.5) * 3 - Math.random() * 1.5;
-      s.vAngle = (Math.random() - 0.5) * 0.45;
+      s.vy = Math.sin(blastAngle) * blastPower + (Math.random() - 0.5) * 3 - Math.random() * 2.0;
+      s.vAngle = (Math.random() - 0.5) * 0.5;
     }
 
-    // Spawn sacred floating embers / sparks
-    for (let i = 0; i < 22; i++) {
+    // Spawn floating ASCII spark embers
+    for (let i = 0; i < 28; i++) {
       this.embers.push({
-        x: mx + (Math.random() - 0.5) * 40,
-        y: my + (Math.random() - 0.5) * 16,
-        vx: (Math.random() - 0.5) * 3.5,
-        vy: -Math.random() * 2.5 - 0.8,
+        x: mx + (Math.random() - 0.5) * 50,
+        y: my + (Math.random() - 0.5) * 20,
+        vx: (Math.random() - 0.5) * 4.0,
+        vy: -Math.random() * 3.0 - 1.0,
         alpha: 1,
-        decay: 0.02 + Math.random() * 0.03,
-        size: 1.5 + Math.random() * 2,
-        color: Math.random() < 0.6 ? colors.accent : colors.primary
+        decay: 0.025 + Math.random() * 0.035,
+        size: 2.0 + Math.random() * 2.5,
+        color: Math.random() < 0.6 ? accentColor : '#ffffff',
+        char: ASCII_GLYPHS[Math.floor(Math.random() * ASCII_GLYPHS.length)]
       });
     }
 
@@ -316,62 +271,65 @@ export class SacredGlyphBrand {
         this.animFrameId = requestAnimationFrame(update);
       } else {
         this.animFrameId = null;
-        this.drawIntact();
+        this.onRest();
       }
     };
     this.animFrameId = requestAnimationFrame(update);
+  }
+
+  private onRest() {
+    if (this.ctx) {
+      this.ctx.clearRect(0, 0, this.width, this.height);
+    }
+    // Return to static pristine HTML text
+    if (this.canvas) this.canvas.style.opacity = '0';
+    if (this.h1Element) this.h1Element.style.opacity = '1';
   }
 
   private step() {
     if (!this.ctx) return;
     this.ctx.clearRect(0, 0, this.width, this.height);
 
-    const colors = this.getThemeColor();
     let totalDisplacement = 0;
     let maxVelocity = 0;
 
     const mx = this.mouseX;
     const my = this.mouseY;
 
-    // 1. Update and draw shards
     this.ctx.save();
 
     for (let i = 0; i < this.shards.length; i++) {
       const s = this.shards[i];
 
       if (this.isHovered) {
-        // --- HOVER STATE: CRUMBLE, RADIAL REPULSION & TURBULENCE ---
+        // --- HOVER STATE: CRUMBLE, RADIAL CURSOR REPULSION & TURBULENCE ---
         const dx = s.x - mx;
         const dy = s.y - my;
         const dist = Math.hypot(dx, dy);
 
         // Repel from moving cursor
-        if (dist < 55) {
-          const force = (1 - dist / 55) * (3.5 / s.mass);
+        if (dist < 85) {
+          const force = (1 - dist / 85) * (4.5 / s.mass);
           const angle = Math.atan2(dy, dx);
           s.vx += Math.cos(angle) * force;
           s.vy += Math.sin(angle) * force;
         }
 
         // Ambient mystical jitter & slight downward/upward dust drift
-        s.vx += (Math.random() - 0.5) * 0.25;
-        s.vy += (Math.random() - 0.5) * 0.25 + 0.02;
+        s.vx += (Math.random() - 0.5) * 0.28;
+        s.vy += (Math.random() - 0.5) * 0.28 + 0.03;
 
         // Friction / drag
-        s.vx *= 0.93;
-        s.vy *= 0.93;
-        s.vAngle *= 0.92;
+        s.vx *= 0.92;
+        s.vy *= 0.92;
+        s.vAngle *= 0.94;
 
         s.x += s.vx;
         s.y += s.vy;
         s.angle += s.vAngle;
 
-        // Soft containment bounce near canvas boundary
-        if (s.x < 4) { s.x = 4; s.vx *= -0.5; }
-        if (s.x > this.width - 4) { s.x = this.width - 4; s.vx *= -0.5; }
-        if (s.y < 2) { s.y = 2; s.vy *= -0.5; }
-        if (s.y > this.height - 2) { s.y = this.height - 2; s.vy *= -0.5; }
-
+        const vel = Math.hypot(s.vx, s.vy);
+        if (vel > maxVelocity) maxVelocity = vel;
       } else {
         // --- RESTORATION STATE: RETURN & SNAP BACK HOME (SPRING PHYSICS) ---
         const dx = s.ox - s.x;
@@ -381,8 +339,8 @@ export class SacredGlyphBrand {
         totalDisplacement += dist;
 
         // Harmonic spring attraction to home coordinate
-        const spring = 0.14;
-        const damping = 0.76;
+        const spring = 0.16;
+        const damping = 0.78;
 
         s.vx = (s.vx + dx * spring) * damping;
         s.vy = (s.vy + dy * spring) * damping;
@@ -396,7 +354,7 @@ export class SacredGlyphBrand {
         if (vel > maxVelocity) maxVelocity = vel;
 
         // Snap when close enough
-        if (dist < 0.35 && vel < 0.08) {
+        if (dist < 0.4 && vel < 0.1) {
           s.x = s.ox;
           s.y = s.oy;
           s.vx = 0;
@@ -415,15 +373,15 @@ export class SacredGlyphBrand {
 
       this.ctx.globalAlpha = Math.max(0.2, s.alpha);
 
-      if (s.isRune && s.rune) {
-        // Render sacred rune particle
+      if (s.isChar && s.char) {
+        // Render ASCII glyph particle
         this.ctx.fillStyle = s.color;
-        this.ctx.font = '10px "UnifrakturMaguntia", serif';
+        this.ctx.font = 'bold 11px "Share Tech Mono", monospace';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(s.rune, 0, 0);
+        this.ctx.fillText(s.char, 0, 0);
       } else {
-        // Render gothic pixel shard / fragment
+        // Render square pixel fragment
         this.ctx.fillStyle = s.color;
         const half = s.size / 2;
         this.ctx.fillRect(-half, -half, s.size, s.size);
@@ -434,76 +392,88 @@ export class SacredGlyphBrand {
 
     this.ctx.restore();
 
-    // 2. Update and draw floating sacred embers
+    // 2. Update and draw floating ASCII spark embers
     for (let j = this.embers.length - 1; j >= 0; j--) {
       const e = this.embers[j];
       e.x += e.vx;
       e.y += e.vy;
-      e.vx *= 0.96;
-      e.vy -= 0.04; // float upward
+      e.vx *= 0.95;
+      e.vy -= 0.05; // float upward
       e.alpha -= e.decay;
 
-      if (e.alpha <= 0 || e.y < 0) {
+      if (e.alpha <= 0) {
         this.embers.splice(j, 1);
         continue;
       }
 
       this.ctx.save();
-      this.ctx.globalAlpha = e.alpha;
+      this.ctx.globalAlpha = Math.max(0, e.alpha);
       this.ctx.fillStyle = e.color;
-      this.ctx.shadowColor = colors.glow;
-      this.ctx.shadowBlur = 4;
-      this.ctx.beginPath();
-      this.ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
-      this.ctx.fill();
+      this.ctx.font = '9px "Share Tech Mono", monospace';
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText(e.char, e.x, e.y);
       this.ctx.restore();
     }
 
-    // Check if fully restored to intact state
-    if (!this.isHovered) {
-      if (totalDisplacement < 0.5 && maxVelocity < 0.05 && this.embers.length === 0) {
-        this.isResting = true;
-      }
+    // Check if fully reconstituted and at rest
+    if (!this.isHovered && totalDisplacement < 4 && maxVelocity < 0.15 && this.embers.length === 0) {
+      this.isResting = true;
     }
   }
 
   private bindEvents() {
     if (!this.container) return;
 
-    this.container.addEventListener('mouseenter', (e: MouseEvent) => {
-      this.isHovered = true;
-      const rect = this.container!.getBoundingClientRect();
+    const triggerFromEvent = (e: MouseEvent, burstMultiplier: number = 1.0) => {
+      const rect = this.canvas ? this.canvas.getBoundingClientRect() : this.container!.getBoundingClientRect();
       this.mouseX = e.clientX - rect.left;
       this.mouseY = e.clientY - rect.top;
-      this.triggerCrumble(this.mouseX, this.mouseY);
+
+      if (!this.isHovered) {
+        this.isHovered = true;
+        this.triggerCrumble(this.mouseX, this.mouseY, burstMultiplier);
+      }
+    };
+
+    this.container.addEventListener('mouseenter', (e: MouseEvent) => {
+      triggerFromEvent(e, 1.0);
     });
 
     this.container.addEventListener('mousemove', (e: MouseEvent) => {
-      const rect = this.container!.getBoundingClientRect();
+      triggerFromEvent(e, 0.4);
+    });
+
+    this.container.addEventListener('click', (e: MouseEvent) => {
+      const rect = this.canvas ? this.canvas.getBoundingClientRect() : this.container!.getBoundingClientRect();
       this.mouseX = e.clientX - rect.left;
       this.mouseY = e.clientY - rect.top;
-      if (!this.isHovered) {
-        this.isHovered = true;
-        this.triggerCrumble(this.mouseX, this.mouseY);
-      }
+      this.triggerCrumble(this.mouseX, this.mouseY, 1.8);
     });
 
     this.container.addEventListener('mouseleave', () => {
       this.isHovered = false;
       this.mouseX = -999;
       this.mouseY = -999;
-      // Start spring return loop if not running
       this.startLoop();
     });
 
-    // Touch support for mobile / tablets
+    // Touch support for tablets / touch displays
     this.container.addEventListener('touchstart', (e: TouchEvent) => {
       if (e.touches.length > 0) {
         this.isHovered = true;
-        const rect = this.container!.getBoundingClientRect();
+        const rect = this.canvas ? this.canvas.getBoundingClientRect() : this.container!.getBoundingClientRect();
         this.mouseX = e.touches[0].clientX - rect.left;
         this.mouseY = e.touches[0].clientY - rect.top;
-        this.triggerCrumble(this.mouseX, this.mouseY);
+        this.triggerCrumble(this.mouseX, this.mouseY, 1.3);
+      }
+    }, { passive: true });
+
+    this.container.addEventListener('touchmove', (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const rect = this.canvas ? this.canvas.getBoundingClientRect() : this.container!.getBoundingClientRect();
+        this.mouseX = e.touches[0].clientX - rect.left;
+        this.mouseY = e.touches[0].clientY - rect.top;
       }
     }, { passive: true });
 
@@ -514,13 +484,10 @@ export class SacredGlyphBrand {
       this.startLoop();
     });
 
-    // Resize handling
+    // Window resize
     window.addEventListener('resize', () => {
       this.setupSizing();
       this.rasterizeText();
-      if (this.isResting) {
-        this.drawIntact();
-      }
     });
   }
 
@@ -534,9 +501,6 @@ export class SacredGlyphBrand {
   }
 }
 
-export function initSacredGlyphBrand(
-  containerId: string = 'start-menu-brand',
-  options?: { width?: number; height?: number; fontSize?: number }
-): SacredGlyphBrand {
-  return new SacredGlyphBrand(containerId, options);
+export function initSacredGlyphBrand(containerId: string = 'welcome-brand-anim-box'): SacredGlyphBrand {
+  return new SacredGlyphBrand(containerId);
 }
