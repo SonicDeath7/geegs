@@ -129,6 +129,75 @@ export interface DecodedGifFrame {
   delay: number; // in milliseconds
 }
 
+export interface WorkstationLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+  opacity: number; // 0.0 to 1.0
+  blendMode: GlobalCompositeOperation; // 'source-over' | 'screen' | 'multiply' | 'overlay' etc.
+  mediaType: 'none' | 'demo' | 'image' | 'gif' | 'video';
+  activeDemoMedia?: 'hermetic_sigil' | 'abyssal_flame';
+  sourceImage: HTMLImageElement | null;
+  videoElement: HTMLVideoElement | null;
+  gifFrames: DecodedGifFrame[];
+  gifCurrentFrameIndex: number;
+  gifLastFrameTime: number;
+  gifIsPlaying: boolean;
+  fitMode: 'fit' | 'cover' | 'stretch';
+
+  glyphSetId: string;
+  manualGlyphsText?: string;
+  isManualActive?: boolean;
+  cellSize: number;
+  depth: number;
+  offset: number;
+  aspect: number;
+  invert: boolean;
+  ditherAlgo: string;
+  contrast: number;
+  brightness: number;
+  sharpness: number;
+  gamma: number;
+  blur: number;
+  posterize: number;
+  rotation: number;
+  flipH: boolean;
+  flipV: boolean;
+  scanlines: boolean;
+
+  colorMode: string;
+  paletteId: string;
+  singleColor: string;
+  bgTransparent: boolean;
+  bgColor: string;
+
+  temperature: number;
+  tint: number;
+  saturation: number;
+  hueRotate: number;
+  liftLevel: number;
+  gammaLevel: number;
+  gainLevel: number;
+  masterLevel: number;
+  liftX: number;
+  liftY: number;
+  gammaX: number;
+  gammaY: number;
+  gainX: number;
+  gainY: number;
+  masterX: number;
+  masterY: number;
+
+  shadrActive?: boolean;
+  aikiziActive?: boolean;
+  glitchActive?: boolean;
+  jitter?: number;
+  typoScale?: number;
+
+  layerCanvas?: HTMLCanvasElement;
+  layerCtx?: CanvasRenderingContext2D | null;
+}
+
 // -------------------------------------------------------------
 // 1. CURATED GLYPH CATEGORIES & STRICTLY UNIQUE SETS
 // (Fewer glyphs per set, each glyph completely distinct & unique!)
@@ -2295,7 +2364,7 @@ export class SacredGlyphEngine {
   oscilloCtx: CanvasRenderingContext2D;
 
   // Media Source (starts at 'none' until user uploads file)
-  mediaType: 'none' | 'demo' | 'image' | 'gif' = 'none';
+  mediaType: 'none' | 'demo' | 'image' | 'gif' | 'video' = 'none';
   activeDemoMedia: 'hermetic_sigil' | 'abyssal_flame' = 'hermetic_sigil';
   sourceImage: HTMLImageElement | null = null;
   videoElement: HTMLVideoElement | null = null;
@@ -2392,6 +2461,10 @@ export class SacredGlyphEngine {
   activeGlyphSetId: string = 'classic_clean';
   manualGlyphsText: string = " .:+*#%@";
   isManualActive: boolean = false;
+
+  // Multi-Layer Workstation Compositor Stack
+  layers: WorkstationLayer[] = [];
+  activeLayerId: string = 'layer_1';
 
   // Viewport & State
   zoom: number = 1.0;
@@ -2601,6 +2674,9 @@ export class SacredGlyphEngine {
   markDirty(sourceChanged: boolean = false) {
     this.isDirty = true;
     if (sourceChanged) this.sourceDirty = true;
+    if (this.layers && this.layers.length > 0) {
+      this.saveActiveLayerState();
+    }
   }
 
   init() {
@@ -2618,6 +2694,7 @@ export class SacredGlyphEngine {
     this.setupEventListeners();
     this.applyPreset('preset_cyber_green');
     this.setLanguage(this.lang);
+    this.initLayers();
     this.updateCanvasTransform();
     this.updateTimelineUI();
     this.drawTimelineTrack();
@@ -2665,8 +2742,30 @@ export class SacredGlyphEngine {
       if (fpsEl) fpsEl.textContent = this.currentFps.toString();
     }
 
-    // Step animated GIF frame if mediaType === 'gif'
-    if (this.mediaType === 'gif' && this.gifFrames.length > 0 && this.gifIsPlaying) {
+    // Step animated GIF frames for all layers
+    if (this.layers && this.layers.length > 0) {
+      for (const lyr of this.layers) {
+        if (lyr.visible && lyr.mediaType === 'gif' && lyr.gifFrames && lyr.gifFrames.length > 0 && lyr.gifIsPlaying) {
+          const frameIdx = Math.min(lyr.gifFrames.length - 1, Math.max(0, lyr.gifCurrentFrameIndex || 0));
+          const currentFrame = lyr.gifFrames[frameIdx];
+          const effectiveDelay = (currentFrame?.delay || 100) / Math.max(0.1, this.playbackSpeed);
+          if (timestamp - (lyr.gifLastFrameTime || 0) >= effectiveDelay) {
+            lyr.gifLastFrameTime = timestamp;
+            if (lyr.gifCurrentFrameIndex < lyr.gifFrames.length - 1) {
+              lyr.gifCurrentFrameIndex++;
+            } else if (this.isLooping) {
+              lyr.gifCurrentFrameIndex = 0;
+            }
+            if (lyr.id === this.activeLayerId) {
+              this.gifCurrentFrameIndex = lyr.gifCurrentFrameIndex;
+              this.updateTimecode();
+            }
+            this.sourceDirty = true;
+            this.isDirty = true;
+          }
+        }
+      }
+    } else if (this.mediaType === 'gif' && this.gifFrames.length > 0 && this.gifIsPlaying) {
       const currentFrame = this.gifFrames[this.gifCurrentFrameIndex];
       const effectiveDelay = currentFrame.delay / Math.max(0.1, this.playbackSpeed);
       if (timestamp - this.gifLastFrameTime >= effectiveDelay) {
@@ -2795,8 +2894,9 @@ export class SacredGlyphEngine {
       this.isDirty = true;
     }
 
-    // Procedural demo sources or Shadr wave generator continuously animate
-    if (this.mediaType === 'demo' || this.shadrActive) {
+    // Procedural demo sources, videos, or Shadr wave generator continuously animate
+    const hasAnimatedLayer = this.layers && this.layers.some(l => l.visible && (l.mediaType === 'demo' || l.mediaType === 'video' || l.shadrActive));
+    if (this.mediaType === 'demo' || this.mediaType === 'video' || this.shadrActive || hasAnimatedLayer) {
       this.sourceDirty = true;
       this.isDirty = true;
     }
@@ -4093,98 +4193,111 @@ export class SacredGlyphEngine {
   // -------------------------------------------------------------
   // DECODE ANIMATED GIF (Optimized streaming & hardware-accelerated compositing)
   // -------------------------------------------------------------
+  async decodeGifFrames(buffer: ArrayBuffer): Promise<DecodedGifFrame[]> {
+    const uint8 = new Uint8Array(buffer);
+    const reader = new GifReader(uint8 as any);
+    const numFrames = reader.numFrames();
+    const width = reader.width;
+    const height = reader.height;
+
+    // Bound max frame dimension to 720 to protect against massive memory allocations on large GIFs
+    const maxDim = 720;
+    let scale = 1.0;
+    if (width > maxDim || height > maxDim) {
+      scale = maxDim / Math.max(width, height);
+    }
+    const optW = Math.max(1, Math.round(width * scale));
+    const optH = Math.max(1, Math.round(height * scale));
+
+    const decodedFrames: DecodedGifFrame[] = [];
+
+    // Single allocated buffer and ImageData for raw frame blit
+    const rgba = new Uint8ClampedArray(width * height * 4);
+    const rawImgData = new ImageData(rgba, width, height);
+
+    // Temporary scratch canvas for single frame blit
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true })!;
+
+    // Persistent hardware composite canvas (replaces slow synchronous getImageData stalls)
+    const compCanvas = document.createElement('canvas');
+    compCanvas.width = width;
+    compCanvas.height = height;
+    const compCtx = compCanvas.getContext('2d', { willReadFrequently: true })!;
+
+    for (let i = 0; i < numFrames; i++) {
+      if (i > 0 && i % 15 === 0) {
+        await new Promise(r => setTimeout(r, 0));
+      }
+
+      const frameInfo = reader.frameInfo(i);
+      tempCtx.clearRect(0, 0, width, height);
+      reader.decodeAndBlitFrameRGBA(i, rgba);
+      tempCtx.putImageData(rawImgData, 0, 0);
+
+      // Composite frame onto canvas
+      compCtx.drawImage(tempCanvas, 0, 0);
+
+      // Store optimized, scaled frame canvas
+      const frameCanvas = document.createElement('canvas');
+      frameCanvas.width = optW;
+      frameCanvas.height = optH;
+      const fCtx = frameCanvas.getContext('2d')!;
+      if (scale < 1.0) {
+        fCtx.imageSmoothingEnabled = true;
+        fCtx.imageSmoothingQuality = 'medium';
+      }
+      fCtx.drawImage(compCanvas, 0, 0, optW, optH);
+
+      // Handle disposal method for next frame
+      if (frameInfo.disposal === 2) {
+        compCtx.clearRect(frameInfo.x, frameInfo.y, frameInfo.width, frameInfo.height);
+      }
+
+      const delay = frameInfo.delay ? frameInfo.delay * 10 : 100;
+      decodedFrames.push({
+        canvas: frameCanvas,
+        delay: Math.max(20, delay)
+      });
+    }
+
+    return decodedFrames;
+  }
+
   async loadGifArrayBuffer(buffer: ArrayBuffer) {
     try {
-      const uint8 = new Uint8Array(buffer);
-      const reader = new GifReader(uint8 as any);
-      const numFrames = reader.numFrames();
-      const width = reader.width;
-      const height = reader.height;
-
-      // Bound max frame dimension to 720 to protect against massive memory allocations on large GIFs
-      const maxDim = 720;
-      let scale = 1.0;
-      if (width > maxDim || height > maxDim) {
-        scale = maxDim / Math.max(width, height);
-      }
-      const optW = Math.max(1, Math.round(width * scale));
-      const optH = Math.max(1, Math.round(height * scale));
-
-      const decodedFrames: DecodedGifFrame[] = [];
-
-      // Single allocated buffer and ImageData for raw frame blit
-      const rgba = new Uint8ClampedArray(width * height * 4);
-      const rawImgData = new ImageData(rgba, width, height);
-
-      // Temporary scratch canvas for single frame blit
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = width;
-      tempCanvas.height = height;
-      const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true })!;
-
-      // Persistent hardware composite canvas (replaces slow synchronous getImageData stalls)
-      const compCanvas = document.createElement('canvas');
-      compCanvas.width = width;
-      compCanvas.height = height;
-      const compCtx = compCanvas.getContext('2d', { willReadFrequently: true })!;
-
-      this.showToast(
-        this.lang === 'ru'
-          ? `Декодирование GIF (${numFrames} кадров)...`
-          : `Decoding GIF (${numFrames} frames)...`
-      );
-
-      for (let i = 0; i < numFrames; i++) {
-        // Yield to browser UI loop periodically to prevent page unresponsive freezes
-        if (i > 0 && i % 15 === 0) {
-          await new Promise(r => setTimeout(r, 0));
-        }
-
-        const frameInfo = reader.frameInfo(i);
-        tempCtx.clearRect(0, 0, width, height);
-        reader.decodeAndBlitFrameRGBA(i, rgba);
-        tempCtx.putImageData(rawImgData, 0, 0);
-
-        // Composite frame onto canvas
-        compCtx.drawImage(tempCanvas, 0, 0);
-
-        // Store optimized, scaled frame canvas
-        const frameCanvas = document.createElement('canvas');
-        frameCanvas.width = optW;
-        frameCanvas.height = optH;
-        const fCtx = frameCanvas.getContext('2d')!;
-        if (scale < 1.0) {
-          fCtx.imageSmoothingEnabled = true;
-          fCtx.imageSmoothingQuality = 'medium';
-        }
-        fCtx.drawImage(compCanvas, 0, 0, optW, optH);
-
-        // Handle disposal method for next frame
-        if (frameInfo.disposal === 2) {
-          compCtx.clearRect(frameInfo.x, frameInfo.y, frameInfo.width, frameInfo.height);
-        }
-
-        const delay = frameInfo.delay ? frameInfo.delay * 10 : 100;
-        decodedFrames.push({
-          canvas: frameCanvas,
-          delay: Math.max(20, delay)
-        });
-      }
+      this.showToast(this.lang === 'ru' ? 'Декодирование GIF...' : 'Decoding GIF...');
+      const decodedFrames = await this.decodeGifFrames(buffer);
 
       this.gifFrames = decodedFrames;
       this.gifCurrentFrameIndex = 0;
       this.gifLastFrameTime = performance.now();
       this.gifIsPlaying = true;
       this.mediaType = 'gif';
+
+      const activeLayer = this.getActiveLayer();
+      if (activeLayer) {
+        activeLayer.mediaType = 'gif';
+        activeLayer.gifFrames = decodedFrames;
+        activeLayer.gifCurrentFrameIndex = 0;
+        activeLayer.gifLastFrameTime = performance.now();
+        activeLayer.gifIsPlaying = true;
+        activeLayer.sourceImage = null;
+        activeLayer.videoElement = null;
+      }
+
       const dropOverlay = document.getElementById('drop-zone-overlay');
       if (dropOverlay) dropOverlay.classList.add('hidden');
       this.markDirty(true);
+      this.updateLayerStackUI();
 
       this.updateTimecode();
       this.showToast(
         this.lang === 'ru'
-          ? `GIF загружен: ${numFrames} кадров (${width}×${height})`
-          : `GIF loaded: ${numFrames} frames (${width}×${height})`
+          ? `GIF загружен: ${decodedFrames.length} кадров`
+          : `GIF loaded: ${decodedFrames.length} frames`
       );
     } catch (err: any) {
       console.error('GIF Decode Error:', err);
@@ -4281,6 +4394,506 @@ export class SacredGlyphEngine {
         }, 30);
       }
     }, captureDelay);
+  }
+
+  // -------------------------------------------------------------
+  // MULTI-LAYER WORKSTATION COMPOSITOR ENGINE
+  // -------------------------------------------------------------
+  initLayers() {
+    const defaultLayer: WorkstationLayer = {
+      id: 'layer_1',
+      name: this.lang === 'ru' ? 'Основной слой' : 'Base Layer',
+      visible: true,
+      opacity: 1.0,
+      blendMode: 'source-over',
+      mediaType: this.mediaType,
+      activeDemoMedia: this.activeDemoMedia,
+      sourceImage: this.sourceImage,
+      videoElement: this.videoElement,
+      gifFrames: this.gifFrames,
+      gifCurrentFrameIndex: this.gifCurrentFrameIndex,
+      gifLastFrameTime: this.gifLastFrameTime,
+      gifIsPlaying: this.gifIsPlaying,
+      fitMode: this.fitMode,
+      glyphSetId: this.activeGlyphSetId,
+      manualGlyphsText: this.manualGlyphsText,
+      isManualActive: this.isManualActive,
+      cellSize: this.cellSize,
+      depth: this.depth,
+      offset: this.offset,
+      aspect: this.aspect,
+      invert: this.invert,
+      ditherAlgo: this.ditherAlgo,
+      contrast: this.contrast,
+      brightness: this.brightness,
+      sharpness: this.sharpness,
+      gamma: this.gamma,
+      blur: this.blur,
+      posterize: this.posterize,
+      rotation: this.rotation,
+      flipH: this.flipH,
+      flipV: this.flipV,
+      scanlines: this.scanlines,
+      colorMode: this.colorMode,
+      paletteId: this.paletteId,
+      singleColor: this.singleColor,
+      bgTransparent: this.bgTransparent,
+      bgColor: this.bgColor,
+      temperature: this.temperature,
+      tint: this.tint,
+      saturation: this.saturation,
+      hueRotate: this.hueRotate,
+      liftLevel: this.liftLevel,
+      gammaLevel: this.gammaLevel,
+      gainLevel: this.gainLevel,
+      masterLevel: this.masterLevel,
+      liftX: this.liftX,
+      liftY: this.liftY,
+      gammaX: this.gammaX,
+      gammaY: this.gammaY,
+      gainX: this.gainX,
+      gainY: this.gainY,
+      masterX: this.masterX,
+      masterY: this.masterY,
+      shadrActive: this.shadrActive,
+      aikiziActive: this.aikiziActive,
+      glitchActive: this.glitchActive,
+      jitter: this.jitter,
+      typoScale: this.typoScale
+    };
+    this.layers = [defaultLayer];
+    this.activeLayerId = defaultLayer.id;
+    this.updateLayerStackUI();
+  }
+
+  getActiveLayer(): WorkstationLayer {
+    let lyr = this.layers.find(l => l.id === this.activeLayerId);
+    if (!lyr) {
+      if (this.layers.length === 0) {
+        this.initLayers();
+      }
+      lyr = this.layers[0];
+      this.activeLayerId = lyr.id;
+    }
+    return lyr;
+  }
+
+  saveActiveLayerState() {
+    if (!this.layers || this.layers.length === 0) return;
+    const lyr = this.layers.find(l => l.id === this.activeLayerId) || this.layers[0];
+    if (!lyr) return;
+    lyr.mediaType = this.mediaType;
+    lyr.activeDemoMedia = this.activeDemoMedia;
+    lyr.sourceImage = this.sourceImage;
+    lyr.videoElement = this.videoElement;
+    lyr.gifFrames = this.gifFrames;
+    lyr.gifCurrentFrameIndex = this.gifCurrentFrameIndex;
+    lyr.gifLastFrameTime = this.gifLastFrameTime;
+    lyr.gifIsPlaying = this.gifIsPlaying;
+    lyr.fitMode = this.fitMode;
+    lyr.glyphSetId = this.activeGlyphSetId;
+    lyr.manualGlyphsText = this.manualGlyphsText;
+    lyr.isManualActive = this.isManualActive;
+    lyr.cellSize = this.cellSize;
+    lyr.depth = this.depth;
+    lyr.offset = this.offset;
+    lyr.aspect = this.aspect;
+    lyr.invert = this.invert;
+    lyr.ditherAlgo = this.ditherAlgo;
+    lyr.contrast = this.contrast;
+    lyr.brightness = this.brightness;
+    lyr.sharpness = this.sharpness;
+    lyr.gamma = this.gamma;
+    lyr.blur = this.blur;
+    lyr.posterize = this.posterize;
+    lyr.rotation = this.rotation;
+    lyr.flipH = this.flipH;
+    lyr.flipV = this.flipV;
+    lyr.scanlines = this.scanlines;
+    lyr.colorMode = this.colorMode;
+    lyr.paletteId = this.paletteId;
+    lyr.singleColor = this.singleColor;
+    lyr.bgTransparent = this.bgTransparent;
+    lyr.bgColor = this.bgColor;
+    lyr.temperature = this.temperature;
+    lyr.tint = this.tint;
+    lyr.saturation = this.saturation;
+    lyr.hueRotate = this.hueRotate;
+    lyr.liftLevel = this.liftLevel;
+    lyr.gammaLevel = this.gammaLevel;
+    lyr.gainLevel = this.gainLevel;
+    lyr.masterLevel = this.masterLevel;
+    lyr.liftX = this.liftX;
+    lyr.liftY = this.liftY;
+    lyr.gammaX = this.gammaX;
+    lyr.gammaY = this.gammaY;
+    lyr.gainX = this.gainX;
+    lyr.gainY = this.gainY;
+    lyr.masterX = this.masterX;
+    lyr.masterY = this.masterY;
+    lyr.shadrActive = this.shadrActive;
+    lyr.aikiziActive = this.aikiziActive;
+    lyr.glitchActive = this.glitchActive;
+    lyr.jitter = this.jitter;
+    lyr.typoScale = this.typoScale;
+  }
+
+  loadLayerState(lyr: WorkstationLayer) {
+    this.mediaType = lyr.mediaType;
+    this.activeDemoMedia = lyr.activeDemoMedia || 'hermetic_sigil';
+    this.sourceImage = lyr.sourceImage;
+    this.videoElement = lyr.videoElement;
+    this.gifFrames = lyr.gifFrames || [];
+    this.gifCurrentFrameIndex = lyr.gifCurrentFrameIndex || 0;
+    this.gifLastFrameTime = lyr.gifLastFrameTime || 0;
+    this.gifIsPlaying = lyr.gifIsPlaying !== undefined ? lyr.gifIsPlaying : true;
+    this.fitMode = lyr.fitMode || 'fit';
+    this.activeGlyphSetId = lyr.glyphSetId || 'classic_clean';
+    this.manualGlyphsText = lyr.manualGlyphsText || " .:+*#%@";
+    this.isManualActive = lyr.isManualActive || false;
+    this.cellSize = lyr.cellSize ?? 9;
+    this.depth = lyr.depth ?? 8;
+    this.offset = lyr.offset ?? 0;
+    this.aspect = lyr.aspect ?? 0.55;
+    this.invert = lyr.invert || false;
+    this.ditherAlgo = lyr.ditherAlgo || 'bayer4';
+    this.contrast = lyr.contrast ?? 1.25;
+    this.brightness = lyr.brightness ?? 0;
+    this.sharpness = lyr.sharpness ?? 25;
+    this.gamma = lyr.gamma ?? 1.0;
+    this.blur = lyr.blur ?? 0;
+    this.posterize = lyr.posterize ?? 0;
+    this.rotation = lyr.rotation ?? 0;
+    this.flipH = lyr.flipH || false;
+    this.flipV = lyr.flipV || false;
+    this.scanlines = lyr.scanlines || false;
+    this.colorMode = lyr.colorMode || 'palette';
+    this.paletteId = lyr.paletteId || 'phosphor_matrix';
+    this.singleColor = lyr.singleColor || '#00ff66';
+    this.bgTransparent = lyr.bgTransparent || false;
+    this.bgColor = lyr.bgColor || '#040904';
+    this.temperature = lyr.temperature ?? 0;
+    this.tint = lyr.tint ?? 0;
+    this.saturation = lyr.saturation ?? 100;
+    this.hueRotate = lyr.hueRotate ?? 0;
+    this.liftLevel = lyr.liftLevel ?? 0;
+    this.gammaLevel = lyr.gammaLevel ?? 0;
+    this.gainLevel = lyr.gainLevel ?? 0;
+    this.masterLevel = lyr.masterLevel ?? 0;
+    this.liftX = lyr.liftX ?? 0;
+    this.liftY = lyr.liftY ?? 0;
+    this.gammaX = lyr.gammaX ?? 0;
+    this.gammaY = lyr.gammaY ?? 0;
+    this.gainX = lyr.gainX ?? 0;
+    this.gainY = lyr.gainY ?? 0;
+    this.masterX = lyr.masterX ?? 0;
+    this.masterY = lyr.masterY ?? 0;
+    this.shadrActive = lyr.shadrActive || false;
+    this.aikiziActive = lyr.aikiziActive || false;
+    this.glitchActive = lyr.glitchActive || false;
+    this.jitter = lyr.jitter ?? 0;
+    this.typoScale = lyr.typoScale ?? 0;
+
+    this.syncControlsToState();
+    const manualInput = document.getElementById('manual-glyph-input') as HTMLInputElement;
+    if (manualInput) manualInput.value = this.manualGlyphsText;
+    this.populateGlyphSets();
+    this.initPalettesGrid();
+    this.redrawAllColorWheels();
+    this.updateLayerStackUI();
+    this.markDirty(true);
+  }
+
+  setActiveLayer(id: string) {
+    if (this.activeLayerId === id) return;
+    this.saveActiveLayerState();
+    const nextLayer = this.layers.find(l => l.id === id);
+    if (!nextLayer) return;
+    this.activeLayerId = id;
+    this.loadLayerState(nextLayer);
+    this.updateLayerStackUI();
+    this.showToast((this.lang === 'ru' ? 'Выбран слой: ' : 'Selected layer: ') + nextLayer.name);
+  }
+
+  async addNewLayerFromFile(file: File) {
+    const name = file.name.toLowerCase();
+    this.showToast((this.lang === 'ru' ? 'Загрузка слоя: ' : 'Loading layer: ') + file.name);
+
+    try {
+      let mediaType: 'image' | 'gif' | 'video' = 'image';
+      let img: HTMLImageElement | null = null;
+      let vid: HTMLVideoElement | null = null;
+      let frames: DecodedGifFrame[] = [];
+
+      if (name.endsWith('.gif') || file.type === 'image/gif') {
+        const buf = await file.arrayBuffer();
+        frames = await this.decodeGifFrames(buf);
+        mediaType = 'gif';
+      } else if (file.type.startsWith('video/')) {
+        const url = URL.createObjectURL(file);
+        vid = document.createElement('video');
+        vid.autoplay = true;
+        vid.loop = true;
+        vid.muted = true;
+        vid.playsInline = true;
+        vid.src = url;
+        await vid.play().catch(() => {});
+        mediaType = 'video';
+      } else {
+        await new Promise<void>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = e => {
+            const image = new Image();
+            image.onload = () => {
+              img = image;
+              resolve();
+            };
+            image.onerror = reject;
+            image.src = e.target?.result as string;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        mediaType = 'image';
+      }
+
+      this.saveActiveLayerState();
+
+      const newId = 'layer_' + Date.now();
+      const newLayer: WorkstationLayer = {
+        id: newId,
+        name: file.name.length > 20 ? file.name.slice(0, 18) + '…' : file.name,
+        visible: true,
+        opacity: 1.0,
+        blendMode: this.layers.length > 0 ? 'screen' : 'source-over',
+        mediaType: mediaType,
+        sourceImage: img,
+        videoElement: vid,
+        gifFrames: frames,
+        gifCurrentFrameIndex: 0,
+        gifLastFrameTime: performance.now(),
+        gifIsPlaying: true,
+        fitMode: 'fit',
+
+        glyphSetId: this.activeGlyphSetId,
+        manualGlyphsText: this.manualGlyphsText,
+        isManualActive: this.isManualActive,
+        cellSize: this.cellSize,
+        depth: this.depth,
+        offset: this.offset,
+        aspect: this.aspect,
+        invert: this.invert,
+        ditherAlgo: this.ditherAlgo,
+        contrast: this.contrast,
+        brightness: this.brightness,
+        sharpness: this.sharpness,
+        gamma: this.gamma,
+        blur: this.blur,
+        posterize: this.posterize,
+        rotation: 0,
+        flipH: false,
+        flipV: false,
+        scanlines: false,
+
+        colorMode: this.colorMode,
+        paletteId: this.paletteId,
+        singleColor: this.singleColor,
+        bgTransparent: true,
+        bgColor: '#000000',
+
+        temperature: 0,
+        tint: 0,
+        saturation: 100,
+        hueRotate: 0,
+        liftLevel: 0,
+        gammaLevel: 0,
+        gainLevel: 0,
+        masterLevel: 0,
+        liftX: 0,
+        liftY: 0,
+        gammaX: 0,
+        gammaY: 0,
+        gainX: 0,
+        gainY: 0,
+        masterX: 0,
+        masterY: 0
+      };
+
+      this.layers.push(newLayer);
+      this.setActiveLayer(newLayer.id);
+      this.updateLayerStackUI();
+
+      const dropOverlay = document.getElementById('drop-zone-overlay');
+      if (dropOverlay) dropOverlay.classList.add('hidden');
+      this.markDirty(true);
+      this.showToast((this.lang === 'ru' ? 'Слой добавлен: ' : 'Layer added: ') + file.name);
+    } catch (err: any) {
+      console.error('Error adding layer from file:', err);
+      this.showToast('Error: ' + (err.message || 'Could not load file'));
+    }
+  }
+
+  duplicateLayer(id: string) {
+    this.saveActiveLayerState();
+    const source = this.layers.find(l => l.id === id);
+    if (!source) return;
+    const newId = 'layer_' + Date.now();
+    const copyName = `${source.name} ${this.lang === 'ru' ? '(Копия)' : '(Copy)'}`;
+    const copy: WorkstationLayer = {
+      ...source,
+      id: newId,
+      name: copyName,
+      layerCanvas: undefined,
+      layerCtx: undefined
+    };
+    const idx = this.layers.findIndex(l => l.id === id);
+    this.layers.splice(idx + 1, 0, copy);
+    this.setActiveLayer(newId);
+    this.updateLayerStackUI();
+    this.markDirty(true);
+    this.showToast((this.lang === 'ru' ? 'Дублирован: ' : 'Duplicated: ') + copyName);
+  }
+
+  deleteLayer(id: string) {
+    if (this.layers.length <= 1) {
+      this.showToast(this.lang === 'ru' ? 'Нельзя удалить единственный слой' : 'Cannot delete the only layer');
+      return;
+    }
+    const idx = this.layers.findIndex(l => l.id === id);
+    if (idx === -1) return;
+    const deletedName = this.layers[idx].name;
+    this.layers.splice(idx, 1);
+    if (this.activeLayerId === id) {
+      const nextIdx = Math.max(0, idx - 1);
+      this.activeLayerId = this.layers[nextIdx].id;
+      this.loadLayerState(this.layers[nextIdx]);
+    }
+    this.updateLayerStackUI();
+    this.markDirty(true);
+    this.showToast((this.lang === 'ru' ? 'Удален слой: ' : 'Deleted layer: ') + deletedName);
+  }
+
+  moveLayer(id: string, dir: 'up' | 'down') {
+    const idx = this.layers.findIndex(l => l.id === id);
+    if (idx === -1) return;
+    if (dir === 'up' && idx < this.layers.length - 1) {
+      const temp = this.layers[idx];
+      this.layers[idx] = this.layers[idx + 1];
+      this.layers[idx + 1] = temp;
+    } else if (dir === 'down' && idx > 0) {
+      const temp = this.layers[idx];
+      this.layers[idx] = this.layers[idx - 1];
+      this.layers[idx - 1] = temp;
+    }
+    this.updateLayerStackUI();
+    this.markDirty(true);
+  }
+
+  setLayerBlendMode(id: string, mode: GlobalCompositeOperation) {
+    const lyr = this.layers.find(l => l.id === id);
+    if (!lyr) return;
+    lyr.blendMode = mode;
+    this.markDirty();
+    this.updateLayerStackUI();
+  }
+
+  setLayerOpacity(id: string, opacity: number) {
+    const lyr = this.layers.find(l => l.id === id);
+    if (!lyr) return;
+    lyr.opacity = Math.max(0, Math.min(1, opacity));
+    const valEl = document.getElementById('val-layer-opacity');
+    if (valEl) valEl.textContent = `${Math.round(lyr.opacity * 100)}%`;
+    this.markDirty();
+    this.updateLayerStackUI();
+  }
+
+  toggleLayerVisibility(id: string) {
+    const lyr = this.layers.find(l => l.id === id);
+    if (!lyr) return;
+    lyr.visible = !lyr.visible;
+    this.markDirty();
+    this.updateLayerStackUI();
+  }
+
+  updateLayerStackUI() {
+    const container = document.getElementById('layer-list-container');
+    const activeLyr = this.getActiveLayer();
+    if (container) {
+      container.innerHTML = '';
+      const reversed = [...this.layers].map((layer, origIdx) => ({ layer, origIdx })).reverse();
+      reversed.forEach(({ layer, origIdx }) => {
+        const isActive = layer.id === this.activeLayerId;
+        const card = document.createElement('div');
+        card.className = `layer-item-card ${isActive ? 'active' : ''} ${!layer.visible ? 'is-hidden' : ''}`;
+        card.setAttribute('data-layer-id', layer.id);
+
+        const typeBadge = layer.mediaType === 'gif' ? 'GIF' : layer.mediaType === 'video' ? 'VID' : layer.mediaType === 'image' ? 'IMG' : 'GEN';
+        const shortBlend = (layer.blendMode || 'source-over').toUpperCase().replace('SOURCE-OVER', 'NORM');
+
+        card.innerHTML = `
+          <div class="layer-item-left">
+            <button type="button" class="layer-vis-btn" title="${this.lang === 'ru' ? 'Видимость слоя' : 'Toggle visibility'}">
+              ${layer.visible ? '👁' : '🚫'}
+            </button>
+            <span class="layer-type-tag" style="font-size: 9px; padding: 1px 4px; background: rgba(255,255,255,0.08); border: 1px solid var(--chassis-dark); border-radius: 2px; font-family: var(--font-mono); font-weight: 800;">
+              ${typeBadge}
+            </span>
+            <span class="layer-name-label" style="font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px;">
+              ${layer.name || `Слой ${origIdx + 1}`}
+            </span>
+          </div>
+          <div class="layer-item-right" style="display: flex; align-items: center; gap: 5px;">
+            <span class="layer-blend-badge" style="font-size: 9px; padding: 1px 4px; border: 1px solid var(--chassis-dark); font-family: var(--font-mono); color: var(--text-dim);">
+              ${shortBlend}
+            </span>
+            <span class="layer-opacity-badge" style="font-size: 10px; color: var(--vfd-green); font-family: var(--font-mono); font-weight: 800; min-width: 32px; text-align: right;">
+              ${Math.round((layer.opacity ?? 1) * 100)}%
+            </span>
+          </div>
+        `;
+
+        card.onclick = () => {
+          this.setActiveLayer(layer.id);
+        };
+
+        const visBtn = card.querySelector('.layer-vis-btn') as HTMLElement;
+        if (visBtn) {
+          visBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.toggleLayerVisibility(layer.id);
+          };
+        }
+
+        container.appendChild(card);
+      });
+    }
+
+    const hudName = document.getElementById('hud-active-layer-name');
+    if (hudName && activeLyr) {
+      hudName.textContent = activeLyr.name;
+    }
+
+    const countBadge = document.getElementById('layer-count-badge');
+    if (countBadge) {
+      const c = this.layers.length;
+      countBadge.textContent = this.lang === 'ru'
+        ? `${c} ${c === 1 ? 'СЛОЙ' : c < 5 ? 'СЛОЯ' : 'СЛОЕВ'}`
+        : `${c} ${c === 1 ? 'LAYER' : 'LAYERS'}`;
+    }
+
+    const blendSelect = document.getElementById('select-layer-blend-mode') as HTMLSelectElement;
+    if (blendSelect && activeLyr) {
+      blendSelect.value = activeLyr.blendMode || 'source-over';
+    }
+
+    const opacitySlider = document.getElementById('slider-layer-opacity') as HTMLInputElement;
+    const opacityVal = document.getElementById('val-layer-opacity');
+    if (opacitySlider && activeLyr) {
+      opacitySlider.value = String(Math.round((activeLyr.opacity ?? 1) * 100));
+    }
+    if (opacityVal && activeLyr) {
+      opacityVal.textContent = `${Math.round((activeLyr.opacity ?? 1) * 100)}%`;
+    }
   }
 
   // -------------------------------------------------------------
@@ -4965,7 +5578,407 @@ export class SacredGlyphEngine {
   }
 
   // -------------------------------------------------------------
-  // PRIMARY RASTER CRT CANVAS RENDERER (Optimized Hardware Execution)
+  // MULTI-LAYER RASTER CRT COMPOSITOR & RENDERER
+  // -------------------------------------------------------------
+  renderLayerToCanvas(
+    layer: WorkstationLayer,
+    totalW: number,
+    totalH: number,
+    isEffectModulated: boolean,
+    effParams: {
+      cellSize: number;
+      depth: number;
+      offset: number;
+      contrast: number;
+      brightness: number;
+      gamma: number;
+      hueRotate: number;
+      temperature: number;
+      saturation: number;
+      liftLevel: number;
+      gammaLevel: number;
+      gainLevel: number;
+      rotation: number;
+      aspect: number;
+      sharpness: number;
+      blur: number;
+    }
+  ) {
+    if (!layer.layerCanvas) {
+      layer.layerCanvas = document.createElement('canvas');
+      layer.layerCtx = layer.layerCanvas.getContext('2d', { willReadFrequently: true });
+    }
+    if (layer.layerCanvas.width !== totalW || layer.layerCanvas.height !== totalH) {
+      layer.layerCanvas.width = totalW;
+      layer.layerCanvas.height = totalH;
+    }
+    const ctx = layer.layerCtx;
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, totalW, totalH);
+    if (!layer.bgTransparent) {
+      ctx.fillStyle = layer.bgColor || '#040904';
+      ctx.fillRect(0, 0, totalW, totalH);
+    }
+
+    const effCellSize = isEffectModulated ? effParams.cellSize : (layer.cellSize || 9);
+    const effAspect = isEffectModulated ? effParams.aspect : (layer.aspect || 0.55);
+    const effDepth = isEffectModulated ? effParams.depth : (layer.depth || 8);
+    const effOffset = isEffectModulated ? effParams.offset : (layer.offset || 0);
+    const effContrast = isEffectModulated ? effParams.contrast : (layer.contrast ?? 1.25);
+    const effBrightness = isEffectModulated ? effParams.brightness : (layer.brightness ?? 0);
+    const effGamma = isEffectModulated ? effParams.gamma : (layer.gamma ?? 1.0);
+    const effHueRotate = isEffectModulated ? effParams.hueRotate : (layer.hueRotate || 0);
+    const effTemp = isEffectModulated ? effParams.temperature : (layer.temperature || 0);
+    const effSat = isEffectModulated ? effParams.saturation : (layer.saturation ?? 100);
+    const effLiftLevel = isEffectModulated ? effParams.liftLevel : (layer.liftLevel || 0);
+    const effGammaLevel = isEffectModulated ? effParams.gammaLevel : (layer.gammaLevel || 0);
+    const effGainLevel = isEffectModulated ? effParams.gainLevel : (layer.gainLevel || 0);
+    const effRotation = isEffectModulated ? effParams.rotation : (layer.rotation || 0);
+    const effSharpness = isEffectModulated ? effParams.sharpness : (layer.sharpness ?? 25);
+    const effBlur = isEffectModulated ? effParams.blur : (layer.blur || 0);
+
+    const cellW = Math.max(1, effCellSize);
+    const cellH = Math.max(1, effCellSize * (1 / Math.max(0.2, effAspect)));
+
+    const cols = Math.max(8, Math.floor(totalW / cellW));
+    const rows = Math.max(6, Math.floor(totalH / cellH));
+
+    if (this.sampleCanvas.width !== cols || this.sampleCanvas.height !== rows) {
+      this.sampleCanvas.width = cols;
+      this.sampleCanvas.height = rows;
+    }
+    const sampleCtx = this.sampleCtx;
+
+    let sourceMedia: CanvasImageSource | null = null;
+    let imgW = 640;
+    let imgH = 480;
+
+    if (layer.shadrActive) {
+      this.generateShadrWave(performance.now(), 640, 480);
+      sourceMedia = this.shadrCanvas;
+      imgW = 640;
+      imgH = 480;
+    } else if (layer.mediaType === 'image' && layer.sourceImage) {
+      sourceMedia = layer.sourceImage;
+      imgW = (layer.sourceImage as any).naturalWidth || (layer.sourceImage as any).width || 640;
+      imgH = (layer.sourceImage as any).naturalHeight || (layer.sourceImage as any).height || 480;
+    } else if (layer.mediaType === 'video' && layer.videoElement) {
+      sourceMedia = layer.videoElement;
+      imgW = layer.videoElement.videoWidth || 640;
+      imgH = layer.videoElement.videoHeight || 480;
+    } else if (layer.mediaType === 'gif' && layer.gifFrames && layer.gifFrames.length > 0) {
+      const fIdx = Math.min(layer.gifFrames.length - 1, Math.max(0, layer.gifCurrentFrameIndex || 0));
+      const frame = layer.gifFrames[fIdx];
+      sourceMedia = frame.canvas;
+      imgW = frame.canvas.width;
+      imgH = frame.canvas.height;
+    } else if (layer.activeDemoMedia === 'hermetic_sigil' || layer.activeDemoMedia === 'abyssal_flame' || layer.mediaType === 'demo') {
+      this.drawDemoMedia(this.tempCtx, 640, 480, performance.now() * this.playbackSpeed);
+      sourceMedia = this.tempCanvas;
+      imgW = 640;
+      imgH = 480;
+    } else if (layer.id === this.activeLayerId && this.sourceImage) {
+      sourceMedia = this.sourceImage;
+      imgW = (this.sourceImage as any).naturalWidth || 640;
+      imgH = (this.sourceImage as any).naturalHeight || 480;
+    }
+
+    if (!sourceMedia) return;
+
+    const screenW = totalW;
+    const screenH = totalH;
+    let dw = screenW;
+    let dh = screenH;
+    let dx = 0;
+    let dy = 0;
+
+    const fitMode = layer.fitMode || 'fit';
+    if (fitMode === 'fit') {
+      const scale = Math.min(screenW / imgW, screenH / imgH);
+      dw = imgW * scale;
+      dh = imgH * scale;
+      dx = (screenW - dw) / 2;
+      dy = (screenH - dh) / 2;
+    } else if (fitMode === 'cover') {
+      const scale = Math.max(screenW / imgW, screenH / imgH);
+      dw = imgW * scale;
+      dh = imgH * scale;
+      dx = (screenW - dw) / 2;
+      dy = (screenH - dh) / 2;
+    }
+
+    const gridX = Math.round(dx / cellW);
+    const gridY = Math.round(dy / cellH);
+    const gridW = Math.max(1, Math.round(dw / cellW));
+    const gridH = Math.max(1, Math.round(dh / cellH));
+
+    sampleCtx.fillStyle = '#000000';
+    sampleCtx.fillRect(0, 0, cols, rows);
+    sampleCtx.save();
+    sampleCtx.imageSmoothingEnabled = true;
+    sampleCtx.imageSmoothingQuality = 'high';
+
+    if (effRotation !== 0 || layer.flipH || layer.flipV) {
+      sampleCtx.translate(cols / 2, rows / 2);
+      if (effRotation !== 0) sampleCtx.rotate((effRotation * Math.PI) / 180);
+      sampleCtx.scale(layer.flipH ? -1 : 1, layer.flipV ? -1 : 1);
+      sampleCtx.translate(-cols / 2, -rows / 2);
+    }
+
+    if (fitMode === 'stretch') {
+      sampleCtx.drawImage(sourceMedia, 0, 0, cols, rows);
+    } else {
+      sampleCtx.drawImage(sourceMedia, gridX, gridY, gridW, gridH);
+    }
+    sampleCtx.restore();
+
+    const nowTime = performance.now();
+    if (layer.aikiziActive) {
+      this.applyAikiziNoise(sampleCtx, cols, rows, nowTime);
+    }
+    if (layer.glitchActive) {
+      this.applyGlitchTransforms(sampleCtx, cols, rows, nowTime);
+    }
+
+    const rawImageData = sampleCtx.getImageData(0, 0, cols, rows);
+
+    const ditheredLums = this.applyDithering(
+      rawImageData,
+      cols,
+      rows,
+      layer.ditherAlgo || 'bayer4',
+      effDepth,
+      effContrast,
+      effBrightness,
+      effGamma,
+      effSharpness,
+      effBlur
+    );
+
+    const gradedImageData = sampleCtx.createImageData(cols, rows);
+    gradedImageData.data.set(rawImageData.data);
+
+    this.applyColorGrading(
+      gradedImageData.data,
+      cols,
+      rows,
+      effTemp,
+      layer.tint || 0,
+      effSat,
+      effHueRotate,
+      effLiftLevel,
+      effGammaLevel,
+      effGainLevel,
+      layer.masterLevel || 0
+    );
+
+    // Build Glyph Ramp
+    let chars: string[];
+    if (layer.isManualActive && layer.manualGlyphsText && layer.manualGlyphsText.trim().length > 0) {
+      chars = Array.from(layer.manualGlyphsText);
+    } else {
+      const baseSet = GLYPH_SETS.find(s => s.id === layer.glyphSetId) || GLYPH_SETS[0];
+      chars = Array.from(baseSet.glyphs);
+    }
+    if (layer.invert) {
+      chars = chars.slice().reverse();
+    }
+    const effectiveDepth = Math.max(2, Math.min(chars.length, effDepth));
+    const glyphRamp: string[] = [];
+    for (let i = 0; i < effectiveDepth; i++) {
+      const srcIdx = Math.floor((i / (effectiveDepth - 1)) * (chars.length - 1));
+      glyphRamp.push(chars[srcIdx]);
+    }
+    const glyphCount = glyphRamp.length;
+
+    const currentPalette = MEDIEVAL_PALETTES.find(p => p.id === layer.paletteId) || MEDIEVAL_PALETTES[0];
+    const paletteColors = currentPalette.colors;
+
+    const hasColorGrading = (layer.liftX || 0) !== 0 || (layer.liftY || 0) !== 0 || effLiftLevel !== 0 ||
+      (layer.gammaX || 0) !== 0 || (layer.gammaY || 0) !== 0 || effGammaLevel !== 0 ||
+      (layer.gainX || 0) !== 0 || (layer.gainY || 0) !== 0 || effGainLevel !== 0 ||
+      (layer.masterX || 0) !== 0 || (layer.masterY || 0) !== 0 || (layer.masterLevel || 0) !== 0 ||
+      effTemp !== 0 || (layer.tint || 0) !== 0 || effSat !== 100 || effHueRotate !== 0;
+
+    const liftShift = this.getWheelRgbShift(layer.liftX || 0, layer.liftY || 0);
+    const gammaShift = this.getWheelRgbShift(layer.gammaX || 0, layer.gammaY || 0);
+    const gainShift = this.getWheelRgbShift(layer.gainX || 0, layer.gainY || 0);
+    const masterShift = this.getWheelRgbShift(layer.masterX || 0, layer.masterY || 0);
+    const tempR = effTemp * 0.003;
+    const tempB = -effTemp * 0.003;
+    const tintG = -(layer.tint || 0) * 0.003;
+    const tintR = (layer.tint || 0) * 0.0015;
+    const tintB = (layer.tint || 0) * 0.0015;
+    const satMult = effSat / 100;
+    const radHue = (effHueRotate * Math.PI) / 180;
+
+    const cosH = Math.cos(radHue);
+    const sinH = Math.sin(radHue);
+    const m00 = 0.299 + 0.701 * cosH + 0.168 * sinH;
+    const m01 = 0.587 - 0.587 * cosH + 0.330 * sinH;
+    const m02 = 0.114 - 0.114 * cosH - 0.497 * sinH;
+    const m10 = 0.299 - 0.299 * cosH - 0.328 * sinH;
+    const m11 = 0.587 + 0.413 * cosH + 0.035 * sinH;
+    const m12 = 0.114 - 0.114 * cosH + 0.292 * sinH;
+    const m20 = 0.299 - 0.300 * cosH + 1.250 * sinH;
+    const m21 = 0.587 - 0.588 * cosH - 1.050 * sinH;
+    const m22 = 0.114 + 0.886 * cosH - 0.203 * sinH;
+
+    let parsedPalette: [number, number, number][] = paletteColors.map(c => this.hexOrRgbToRgb(c));
+    let activePaletteColors = paletteColors;
+    if (hasColorGrading) {
+      parsedPalette = parsedPalette.map(rgb => this.gradeColorRgb(
+        rgb[0], rgb[1], rgb[2],
+        liftShift, gammaShift, gainShift, masterShift,
+        tempR, tempB, tintR, tintG, tintB,
+        satMult, effHueRotate,
+        m00, m01, m02, m10, m11, m12, m20, m21, m22,
+        effLiftLevel, effGammaLevel, effGainLevel, layer.masterLevel || 0
+      ));
+      activePaletteColors = parsedPalette.map(rgb => `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`);
+    }
+
+    let [sR, sG, sB] = this.hexOrRgbToRgb(layer.singleColor || '#00ff66');
+    let activeSingleColor = layer.singleColor || '#00ff66';
+    if (hasColorGrading) {
+      [sR, sG, sB] = this.gradeColorRgb(
+        sR, sG, sB,
+        liftShift, gammaShift, gainShift, masterShift,
+        tempR, tempB, tintR, tintG, tintB,
+        satMult, effHueRotate,
+        m00, m01, m02, m10, m11, m12, m20, m21, m22,
+        effLiftLevel, effGammaLevel, effGainLevel, layer.masterLevel || 0
+      );
+      activeSingleColor = `rgb(${sR},${sG},${sB})`;
+    }
+
+    if (cellW <= 2) {
+      const imgData = ctx.createImageData(totalW, totalH);
+      const buf32 = new Uint32Array(imgData.data.buffer);
+      if (!layer.bgTransparent) {
+        const [bgR, bgG, bgB] = this.hexOrRgbToRgb(layer.bgColor || '#040904');
+        const bgUint32 = (255 << 24) | (bgB << 16) | (bgG << 8) | bgR;
+        buf32.fill(bgUint32);
+      } else {
+        buf32.fill(0);
+      }
+
+      for (let y = 0; y < rows; y++) {
+        const rowOffset = y * cols;
+        const pyStart = Math.floor(y * cellH);
+        const pyEnd = Math.min(totalH, Math.floor((y + 1) * cellH));
+        if (pyStart >= totalH) break;
+
+        for (let x = 0; x < cols; x++) {
+          const i = rowOffset + x;
+          const lum = ditheredLums[i];
+
+          let glyphIdx = Math.floor(lum * glyphCount) + effOffset;
+          glyphIdx = glyphIdx < 0 ? 0 : glyphIdx >= glyphCount ? glyphCount - 1 : glyphIdx;
+          const char = glyphRamp[glyphIdx] || ' ';
+          if (char === ' ') continue;
+
+          let r = 0, g = 255, b = 102;
+          const colorMode = layer.colorMode || 'palette';
+          if (colorMode === 'rgb' || colorMode === 'original') {
+            const pixelIdx = i * 4;
+            r = gradedImageData.data[pixelIdx];
+            g = gradedImageData.data[pixelIdx + 1];
+            b = gradedImageData.data[pixelIdx + 2];
+          } else if (colorMode === 'palette') {
+            const palIdx = Math.floor(lum * parsedPalette.length);
+            const rgb = parsedPalette[Math.min(parsedPalette.length - 1, Math.max(0, palIdx))];
+            r = rgb[0]; g = rgb[1]; b = rgb[2];
+          } else {
+            r = sR; g = sG; b = sB;
+          }
+
+          const pixelUint32 = (255 << 24) | (b << 16) | (g << 8) | r;
+          const pxStart = Math.floor(x * cellW);
+          const pxEnd = Math.min(totalW, Math.floor((x + 1) * cellW));
+
+          for (let py = pyStart; py < pyEnd; py++) {
+            const rowOff32 = py * totalW;
+            for (let px = pxStart; px < pxEnd; px++) {
+              buf32[rowOff32 + px] = pixelUint32;
+            }
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+    } else {
+      const fontSize = Math.max(3, Math.round(cellH * 0.95));
+      ctx.font = `bold ${fontSize}px var(--font-mono), monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      let lastFill = '';
+      const colorMode = layer.colorMode || 'palette';
+      if (colorMode === 'single') {
+        ctx.fillStyle = activeSingleColor;
+        lastFill = activeSingleColor;
+      }
+
+      for (let y = 0; y < rows; y++) {
+        const rowOffset = y * cols;
+        const posY = y * cellH + cellH / 2;
+        for (let x = 0; x < cols; x++) {
+          const i = rowOffset + x;
+          const lum = ditheredLums[i];
+
+          let glyphIdx = Math.floor(lum * glyphCount) + effOffset;
+          glyphIdx = glyphIdx < 0 ? 0 : glyphIdx >= glyphCount ? glyphCount - 1 : glyphIdx;
+          const char = glyphRamp[glyphIdx] || ' ';
+          if (char === ' ') continue;
+
+          if (colorMode === 'palette') {
+            const palIdx = Math.floor(lum * activePaletteColors.length);
+            const col = activePaletteColors[Math.min(activePaletteColors.length - 1, Math.max(0, palIdx))];
+            if (col !== lastFill) {
+              ctx.fillStyle = col;
+              lastFill = col;
+            }
+          } else if (colorMode === 'rgb' || colorMode === 'original') {
+            const pixelIdx = i * 4;
+            const r = gradedImageData.data[pixelIdx];
+            const g = gradedImageData.data[pixelIdx + 1];
+            const b = gradedImageData.data[pixelIdx + 2];
+            const col = `rgb(${r},${g},${b})`;
+            if (col !== lastFill) {
+              ctx.fillStyle = col;
+              lastFill = col;
+            }
+          } else {
+            if (activeSingleColor !== lastFill) {
+              ctx.fillStyle = activeSingleColor;
+              lastFill = activeSingleColor;
+            }
+          }
+
+          let posX = x * cellW + cellW / 2;
+          let drawY = posY;
+          if (layer.jitter && layer.jitter > 0) {
+            posX += (Math.random() - 0.5) * layer.jitter;
+            drawY += (Math.random() - 0.5) * layer.jitter;
+          }
+
+          ctx.fillText(char, posX, drawY);
+        }
+      }
+    }
+
+    if (layer.scanlines) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+      for (let y = 0; y < totalH; y += 3) {
+        ctx.fillRect(0, y, totalW, 1.2);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------
+  // PRIMARY COMPOSITED CRT CANVAS RENDERER
   // -------------------------------------------------------------
   renderAsciiFrame(
     effCellSize: number = this.cellSize,
@@ -5004,8 +6017,12 @@ export class SacredGlyphEngine {
       this.mainCanvas.height = totalH;
     }
 
-    // When no media is loaded yet, keep CRT screen blank/standby and show upload overlay
-    if (this.mediaType === 'none' && !this.shadrActive) {
+    // Check if any layer or engine has media loaded
+    const hasMedia = (this.layers && this.layers.length > 0)
+      ? this.layers.some(l => l.visible && (l.mediaType !== 'none' || l.shadrActive))
+      : (this.mediaType !== 'none' || this.shadrActive);
+
+    if (!hasMedia && this.mediaType === 'none' && !this.shadrActive) {
       if (this.bgTransparent) {
         this.ctx.clearRect(0, 0, totalW, totalH);
       } else {
@@ -5023,350 +6040,55 @@ export class SacredGlyphEngine {
       return;
     }
 
-    // Hide upload overlay when user has loaded an image or GIF
+    // Hide upload overlay when active media is present
     const dropOverlay = document.getElementById('drop-zone-overlay');
     if (dropOverlay && !dropOverlay.classList.contains('hidden')) {
       dropOverlay.classList.add('hidden');
     }
 
-    // Reuse persistent offscreen sampling canvas (zero DOM allocation churn)
-    if (this.sampleCanvas.width !== cols || this.sampleCanvas.height !== rows) {
-      this.sampleCanvas.width = cols;
-      this.sampleCanvas.height = rows;
-    }
-    const sampleCtx = this.sampleCtx;
-
-    // Pick source media
-    let sourceMedia: CanvasImageSource = this.tempCanvas;
-    let imgW = 640;
-    let imgH = 480;
-
-    if (this.shadrActive) {
-      this.generateShadrWave(performance.now(), 640, 480);
-      sourceMedia = this.shadrCanvas;
-      imgW = 640;
-      imgH = 480;
-    } else if (this.mediaType === 'image' && this.sourceImage) {
-      sourceMedia = this.sourceImage;
-      imgW = (this.sourceImage as any).naturalWidth || (this.sourceImage as any).width || 640;
-      imgH = (this.sourceImage as any).naturalHeight || (this.sourceImage as any).height || 480;
-    } else if (this.mediaType === 'gif' && this.gifFrames.length > 0) {
-      const frame = this.gifFrames[this.gifCurrentFrameIndex];
-      sourceMedia = frame.canvas;
-      imgW = frame.canvas.width;
-      imgH = frame.canvas.height;
-    } else {
-      sourceMedia = this.tempCanvas;
-      imgW = this.tempCanvas.width || 640;
-      imgH = this.tempCanvas.height || 480;
-    }
-
-    // Mathematical projection to prevent squishing / distortion:
-    const screenW = totalW;
-    const screenH = totalH;
-    let dw = screenW;
-    let dh = screenH;
-    let dx = 0;
-    let dy = 0;
-
-    if (this.fitMode === 'fit') {
-      const scale = Math.min(screenW / imgW, screenH / imgH);
-      dw = imgW * scale;
-      dh = imgH * scale;
-      dx = (screenW - dw) / 2;
-      dy = (screenH - dh) / 2;
-    } else if (this.fitMode === 'cover') {
-      const scale = Math.max(screenW / imgW, screenH / imgH);
-      dw = imgW * scale;
-      dh = imgH * scale;
-      dx = (screenW - dw) / 2;
-      dy = (screenH - dh) / 2;
-    }
-
-    const gridX = Math.round(dx / cellW);
-    const gridY = Math.round(dy / cellH);
-    const gridW = Math.max(1, Math.round(dw / cellW));
-    const gridH = Math.max(1, Math.round(dh / cellH));
-
-    sampleCtx.fillStyle = '#000000';
-    sampleCtx.fillRect(0, 0, cols, rows);
-    sampleCtx.save();
-    sampleCtx.imageSmoothingEnabled = true;
-    sampleCtx.imageSmoothingQuality = 'high';
-
-    if (effRotation !== 0 || this.flipH || this.flipV) {
-      sampleCtx.translate(cols / 2, rows / 2);
-      if (effRotation !== 0) sampleCtx.rotate((effRotation * Math.PI) / 180);
-      sampleCtx.scale(this.flipH ? -1 : 1, this.flipV ? -1 : 1);
-      sampleCtx.translate(-cols / 2, -rows / 2);
-    }
-
-    if (this.fitMode === 'stretch') {
-      sampleCtx.drawImage(sourceMedia, 0, 0, cols, rows);
-    } else {
-      sampleCtx.drawImage(sourceMedia, gridX, gridY, gridW, gridH);
-    }
-    sampleCtx.restore();
-
-    // -----------------------------------------------------------
-    // PROCEDURAL STAGE PROCESSING PIPELINE (SECTIONS 7, 2, 3)
-    // -----------------------------------------------------------
-    const nowTime = performance.now();
-    if (this.abstractActive) {
-      this.applyAbstractTransforms(sampleCtx, cols, rows, nowTime);
-    }
-    if (this.aikiziActive) {
-      this.applyAikiziNoise(sampleCtx, cols, rows, nowTime);
-    }
-    if (this.glitchActive) {
-      this.applyGlitchTransforms(sampleCtx, cols, rows, nowTime);
-    }
-
-    const rawImageData = sampleCtx.getImageData(0, 0, cols, rows);
-
-    // Compute ASCII dithering luminance directly from clean image (unaltered by color grading wheels).
-    // This ensures color wheels only alter color and never corrupt brightness, contrast, or glyph selection!
-    const ditheredLums = this.applyDithering(
-      rawImageData,
-      cols,
-      rows,
-      this.ditherAlgo,
-      effDepth,
-      effContrast,
-      effBrightness,
-      effGamma,
-      effSharpness,
-      effBlur
-    );
-
-    // Apply 4-Way RGB Color Grading to pixel data for colored ASCII rendering
-    const gradedImageData = sampleCtx.createImageData(cols, rows);
-    gradedImageData.data.set(rawImageData.data);
-
-    this.applyColorGrading(
-      gradedImageData.data,
-      cols,
-      rows,
-      effTemp,
-      this.tint,
-      effSat,
-      effHueRotate,
-      effLiftLevel,
-      effGammaLevel,
-      effGainLevel,
-      this.masterLevel
-    );
-
-    // Clear Canvas
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, totalW, totalH);
-
+    // Clear main canvas
+    this.ctx.clearRect(0, 0, totalW, totalH);
     if (!this.bgTransparent) {
-      ctx.fillStyle = this.bgColor;
-      ctx.fillRect(0, 0, totalW, totalH);
+      this.ctx.fillStyle = this.bgColor || '#040904';
+      this.ctx.fillRect(0, 0, totalW, totalH);
     }
 
-    const glyphRamp = this.getActiveGlyphArray();
-    const glyphCount = glyphRamp.length;
+    const effParams = {
+      cellSize: effCellSize,
+      depth: effDepth,
+      offset: effOffset,
+      contrast: effContrast,
+      brightness: effBrightness,
+      gamma: effGamma,
+      hueRotate: effHueRotate,
+      temperature: effTemp,
+      saturation: effSat,
+      liftLevel: effLiftLevel,
+      gammaLevel: effGammaLevel,
+      gainLevel: effGainLevel,
+      rotation: effRotation,
+      aspect: effAspect,
+      sharpness: effSharpness,
+      blur: effBlur
+    };
 
-    const currentPalette = MEDIEVAL_PALETTES.find(p => p.id === this.paletteId) || MEDIEVAL_PALETTES[0];
-    const paletteColors = currentPalette.colors;
-
-    const hasColorGrading = this.liftX !== 0 || this.liftY !== 0 || effLiftLevel !== 0 ||
-      this.gammaX !== 0 || this.gammaY !== 0 || effGammaLevel !== 0 ||
-      this.gainX !== 0 || this.gainY !== 0 || effGainLevel !== 0 ||
-      this.masterX !== 0 || this.masterY !== 0 || this.masterLevel !== 0 ||
-      effTemp !== 0 || this.tint !== 0 || effSat !== 100 || effHueRotate !== 0;
-
-    const liftShift = this.getWheelRgbShift(this.liftX, this.liftY);
-    const gammaShift = this.getWheelRgbShift(this.gammaX, this.gammaY);
-    const gainShift = this.getWheelRgbShift(this.gainX, this.gainY);
-    const masterShift = this.getWheelRgbShift(this.masterX, this.masterY);
-    const tempR = effTemp * 0.003;
-    const tempB = -effTemp * 0.003;
-    const tintG = -this.tint * 0.003;
-    const tintR = this.tint * 0.0015;
-    const tintB = this.tint * 0.0015;
-    const satMult = effSat / 100;
-    const radHue = (effHueRotate * Math.PI) / 180;
-    const cosH = Math.cos(radHue);
-    const sinH = Math.sin(radHue);
-    const m00 = 0.299 + 0.701 * cosH + 0.168 * sinH;
-    const m01 = 0.587 - 0.587 * cosH + 0.330 * sinH;
-    const m02 = 0.114 - 0.114 * cosH - 0.497 * sinH;
-    const m10 = 0.299 - 0.299 * cosH - 0.328 * sinH;
-    const m11 = 0.587 + 0.413 * cosH + 0.035 * sinH;
-    const m12 = 0.114 - 0.114 * cosH + 0.292 * sinH;
-    const m20 = 0.299 - 0.300 * cosH + 1.250 * sinH;
-    const m21 = 0.587 - 0.588 * cosH - 1.050 * sinH;
-    const m22 = 0.114 + 0.886 * cosH - 0.203 * sinH;
-
-    let parsedPalette: [number, number, number][] = paletteColors.map(c => this.hexOrRgbToRgb(c));
-    let activePaletteColors = paletteColors;
-    if (hasColorGrading) {
-      parsedPalette = parsedPalette.map(rgb => this.gradeColorRgb(
-        rgb[0], rgb[1], rgb[2],
-        liftShift, gammaShift, gainShift, masterShift,
-        tempR, tempB, tintR, tintG, tintB,
-        satMult, effHueRotate,
-        m00, m01, m02, m10, m11, m12, m20, m21, m22,
-        effLiftLevel, effGammaLevel, effGainLevel, this.masterLevel
-      ));
-      activePaletteColors = parsedPalette.map(rgb => `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`);
-    }
-
-    let [sR, sG, sB] = this.hexOrRgbToRgb(this.singleColor);
-    let activeSingleColor = this.singleColor;
-    if (hasColorGrading) {
-      [sR, sG, sB] = this.gradeColorRgb(
-        sR, sG, sB,
-        liftShift, gammaShift, gainShift, masterShift,
-        tempR, tempB, tintR, tintG, tintB,
-        satMult, effHueRotate,
-        m00, m01, m02, m10, m11, m12, m20, m21, m22,
-        effLiftLevel, effGammaLevel, effGainLevel, this.masterLevel
-      );
-      activeSingleColor = `rgb(${sR},${sG},${sB})`;
-    }
-
-    // HIGH-DENSITY ULTRA RESOLUTION PATH:
-    // When cellW <= 2, render micro-pixel direct matrix via Uint32Array for crystal-clear HD & 60 FPS
-    if (cellW <= 2) {
-      if (!this.pixelImageData || this.pixelImageData.width !== totalW || this.pixelImageData.height !== totalH) {
-        this.pixelImageData = ctx.createImageData(totalW, totalH);
-      }
-      const buf32 = new Uint32Array(this.pixelImageData.data.buffer);
-      if (!this.bgTransparent) {
-        const [bgR, bgG, bgB] = this.hexOrRgbToRgb(this.bgColor);
-        const bgUint32 = (255 << 24) | (bgB << 16) | (bgG << 8) | bgR;
-        buf32.fill(bgUint32);
-      } else {
-        buf32.fill(0);
-      }
-
-      for (let y = 0; y < rows; y++) {
-        const rowOffset = y * cols;
-        const pyStart = Math.floor(y * cellH);
-        const pyEnd = Math.min(totalH, Math.floor((y + 1) * cellH));
-        if (pyStart >= totalH) break;
-
-        for (let x = 0; x < cols; x++) {
-          const i = rowOffset + x;
-          const lum = ditheredLums[i];
-
-          let glyphIdx = Math.floor(lum * glyphCount) + effOffset;
-          glyphIdx = glyphIdx < 0 ? 0 : glyphIdx >= glyphCount ? glyphCount - 1 : glyphIdx;
-          const char = glyphRamp[glyphIdx] || ' ';
-
-          if (char === ' ') continue;
-
-          let r = 0, g = 255, b = 102;
-          if (this.colorMode === 'rgb' || this.colorMode === 'original') {
-            const pixelIdx = i * 4;
-            r = gradedImageData.data[pixelIdx];
-            g = gradedImageData.data[pixelIdx + 1];
-            b = gradedImageData.data[pixelIdx + 2];
-          } else if (this.colorMode === 'palette') {
-            const palIdx = Math.floor(lum * parsedPalette.length);
-            const rgb = parsedPalette[Math.min(parsedPalette.length - 1, Math.max(0, palIdx))];
-            r = rgb[0]; g = rgb[1]; b = rgb[2];
-          } else {
-            r = sR; g = sG; b = sB;
-          }
-
-          const pixelUint32 = (255 << 24) | (b << 16) | (g << 8) | r;
-          const pxStart = Math.floor(x * cellW);
-          const pxEnd = Math.min(totalW, Math.floor((x + 1) * cellW));
-
-          for (let py = pyStart; py < pyEnd; py++) {
-            const rowOff32 = py * totalW;
-            for (let px = pxStart; px < pxEnd; px++) {
-              buf32[rowOff32 + px] = pixelUint32;
-            }
-          }
-        }
-      }
-
-      ctx.putImageData(this.pixelImageData, 0, 0);
-    } else {
-      // TYPOGRAPHY GLYPH PATH (cellW >= 3):
-      const fontSize = Math.max(3, Math.round(cellH * 0.95));
-      if (this.cachedFontSize !== fontSize) {
-        this.cachedFontSize = fontSize;
-        ctx.font = `bold ${fontSize}px var(--font-mono), monospace`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-      }
-
-      let lastFill = '';
-      if (this.colorMode === 'single') {
-        ctx.fillStyle = activeSingleColor;
-        lastFill = activeSingleColor;
-      }
-
-      // Draw Character Grid with batched fillStyle changes
-      for (let y = 0; y < rows; y++) {
-        const rowOffset = y * cols;
-        const posY = y * cellH + cellH / 2;
-        for (let x = 0; x < cols; x++) {
-          const i = rowOffset + x;
-          const lum = ditheredLums[i];
-
-          let glyphIdx = Math.floor(lum * glyphCount) + effOffset;
-          glyphIdx = glyphIdx < 0 ? 0 : glyphIdx >= glyphCount ? glyphCount - 1 : glyphIdx;
-          const char = glyphRamp[glyphIdx] || ' ';
-
-          if (char === ' ') continue;
-
-          // Color selection with state caching
-          if (this.colorMode === 'palette') {
-            const palIdx = Math.floor(lum * activePaletteColors.length);
-            const col = activePaletteColors[Math.min(activePaletteColors.length - 1, Math.max(0, palIdx))];
-            if (col !== lastFill) {
-              ctx.fillStyle = col;
-              lastFill = col;
-            }
-          } else if (this.colorMode === 'rgb' || this.colorMode === 'original') {
-            const pixelIdx = i * 4;
-            const r = gradedImageData.data[pixelIdx];
-            const g = gradedImageData.data[pixelIdx + 1];
-            const b = gradedImageData.data[pixelIdx + 2];
-            const col = `rgb(${r},${g},${b})`;
-            if (col !== lastFill) {
-              ctx.fillStyle = col;
-              lastFill = col;
-            }
-          } else {
-            if (activeSingleColor !== lastFill) {
-              ctx.fillStyle = activeSingleColor;
-              lastFill = activeSingleColor;
-            }
-          }
-
-          let posX = x * cellW + cellW / 2;
-          let drawY = posY;
-          if (this.jitter > 0) {
-            posX += (Math.random() - 0.5) * this.jitter;
-            drawY += (Math.random() - 0.5) * this.jitter;
-          }
-
-          let finalChar = char;
-          if (this.glitchScriptSlayer > 0 && Math.random() < (this.glitchScriptSlayer / 100) * 0.38) {
-            const zalgo = ['̷', '̸', '█', '▓', '▒', '░', '§', '¶', 'ø', '¥', '‡', '†', 'ǂ', 'Ξ', 'Ψ', 'Ω'];
-            finalChar = zalgo[Math.floor(Math.random() * zalgo.length)];
-          }
-
-          if (this.typoScale > 0) {
-            const dynamicSize = Math.max(2, Math.round(fontSize * (0.6 + lum * (this.typoScale / 50))));
-            ctx.font = `bold ${dynamicSize}px var(--font-mono), monospace`;
-            ctx.fillText(finalChar, posX, drawY);
-            ctx.font = `bold ${fontSize}px var(--font-mono), monospace`;
-          } else {
-            ctx.fillText(finalChar, posX, drawY);
-          }
+    // Composite all visible layers in stack order
+    if (this.layers && this.layers.length > 0) {
+      for (const layer of this.layers) {
+        if (!layer.visible || layer.opacity <= 0) continue;
+        const isModulated = layer.id === this.activeLayerId;
+        this.renderLayerToCanvas(layer, totalW, totalH, isModulated, effParams);
+        if (layer.layerCanvas) {
+          this.ctx.save();
+          this.ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity ?? 1));
+          this.ctx.globalCompositeOperation = layer.blendMode || 'source-over';
+          this.ctx.drawImage(layer.layerCanvas, 0, 0);
+          this.ctx.restore();
         }
       }
     }
+
+    const ctx = this.ctx;
 
     // Optional Grid Overlay (only visible when cells are large enough to be meaningful)
     if (this.showGrid && cellW >= 4) {
@@ -6172,6 +6894,7 @@ export class SacredGlyphEngine {
     this.initPalettesGrid();
     this.initCategoryTabs();
     this.updateLiveGlyphRibbon();
+    this.updateLayerStackUI();
 
     // Update Slider readouts
     const valDepth = document.getElementById('val-depth');
@@ -7522,6 +8245,97 @@ export class SacredGlyphEngine {
     bindSlider('slider-abstract-echo', 'val-abstract-echo', '%', v => this.abstractRecursiveEcho = v);
     bindSlider('slider-abstract-sort', 'val-abstract-sort', '%', v => this.abstractPixelSort = v);
     bindSlider('slider-abstract-drift', 'val-abstract-drift', '%', v => this.abstractSpectrumDrift = v);
+
+    // -----------------------------------------------------------
+    // LAYER MANAGEMENT & COMPOSITING STACK LISTENERS
+    // -----------------------------------------------------------
+    const btnAddLayer = document.getElementById('btn-add-layer');
+    const layerFileInput = document.getElementById('layer-file-input') as HTMLInputElement;
+    if (btnAddLayer && layerFileInput) {
+      btnAddLayer.onclick = () => {
+        layerFileInput.click();
+      };
+    }
+    if (layerFileInput) {
+      layerFileInput.onchange = async () => {
+        if (layerFileInput.files && layerFileInput.files[0]) {
+          await this.addNewLayerFromFile(layerFileInput.files[0]);
+          layerFileInput.value = '';
+        }
+      };
+    }
+
+    const btnDupLayer = document.getElementById('btn-duplicate-layer');
+    if (btnDupLayer) {
+      btnDupLayer.onclick = () => this.duplicateLayer(this.activeLayerId);
+    }
+
+    const btnDelLayer = document.getElementById('btn-delete-layer');
+    if (btnDelLayer) {
+      btnDelLayer.onclick = () => this.deleteLayer(this.activeLayerId);
+    }
+
+    const btnMoveUp = document.getElementById('btn-move-layer-up');
+    if (btnMoveUp) {
+      btnMoveUp.onclick = () => this.moveLayer(this.activeLayerId, 'up');
+    }
+
+    const btnMoveDown = document.getElementById('btn-move-layer-down');
+    if (btnMoveDown) {
+      btnMoveDown.onclick = () => this.moveLayer(this.activeLayerId, 'down');
+    }
+
+    const selLayerBlend = document.getElementById('select-layer-blend-mode') as HTMLSelectElement;
+    if (selLayerBlend) {
+      selLayerBlend.onchange = () => {
+        this.setLayerBlendMode(this.activeLayerId, selLayerBlend.value as GlobalCompositeOperation);
+      };
+    }
+
+    const sliderLayerOpacity = document.getElementById('slider-layer-opacity') as HTMLInputElement;
+    if (sliderLayerOpacity) {
+      sliderLayerOpacity.oninput = () => {
+        const v = parseFloat(sliderLayerOpacity.value);
+        this.setLayerOpacity(this.activeLayerId, v / 100);
+      };
+    }
+
+    // -----------------------------------------------------------
+    // MANUAL GLYPH INPUT & INVERT BUTTON (RIGHT SETTINGS RACK)
+    // -----------------------------------------------------------
+    const manualGlyphInput = document.getElementById('manual-glyph-input') as HTMLInputElement;
+    if (manualGlyphInput) {
+      manualGlyphInput.oninput = () => {
+        this.manualGlyphsText = manualGlyphInput.value;
+        this.isManualActive = true;
+        const activeLyr = this.getActiveLayer();
+        if (activeLyr) {
+          activeLyr.manualGlyphsText = manualGlyphInput.value;
+          activeLyr.isManualActive = true;
+        }
+        this.updateLiveGlyphRibbon();
+        this.markDirty();
+      };
+    }
+
+    const btnInvertGlyphs = document.getElementById('btn-invert-glyphs');
+    if (btnInvertGlyphs) {
+      btnInvertGlyphs.onclick = () => {
+        const currentVal = manualGlyphInput ? manualGlyphInput.value : this.manualGlyphsText;
+        const inverted = Array.from(currentVal).reverse().join('');
+        if (manualGlyphInput) manualGlyphInput.value = inverted;
+        this.manualGlyphsText = inverted;
+        this.isManualActive = true;
+        const activeLyr = this.getActiveLayer();
+        if (activeLyr) {
+          activeLyr.manualGlyphsText = inverted;
+          activeLyr.isManualActive = true;
+        }
+        this.updateLiveGlyphRibbon();
+        this.markDirty();
+        this.showToast(this.lang === 'ru' ? 'Набор символов инвертирован' : 'Glyphs inverted');
+      };
+    }
   }
 
   // -------------------------------------------------------------
@@ -7529,7 +8343,13 @@ export class SacredGlyphEngine {
   // -------------------------------------------------------------
   handleFileIngest(file: File) {
     const name = file.name.toLowerCase();
-    // Auto-reset all settings to clean defaults and enable LFO modulation on file load
+
+    // If first layer already has media, add as a new layer!
+    if (this.layers && this.layers.length > 0 && (this.layers[0].mediaType !== 'none' || this.layers[0].sourceImage || this.layers[0].gifFrames.length > 0)) {
+      this.addNewLayerFromFile(file);
+      return;
+    }
+
     this.resetAllSettings(false, true);
     this.showToast((this.lang === 'ru' ? 'Загрузка: ' : 'Ingesting: ') + file.name);
 
@@ -7538,6 +8358,10 @@ export class SacredGlyphEngine {
       reader.onload = e => {
         if (e.target && e.target.result) {
           this.loadGifArrayBuffer(e.target.result as ArrayBuffer);
+          if (this.layers && this.layers[0]) {
+            this.layers[0].name = file.name;
+            this.updateLayerStackUI();
+          }
         }
       };
       reader.readAsArrayBuffer(file);
@@ -7547,10 +8371,15 @@ export class SacredGlyphEngine {
         if (e.target && e.target.result) {
           const img = new Image();
           img.onload = () => {
-            // Keep full original uncompressed resolution and natural aspect ratio
             this.sourceImage = img;
             this.mediaType = 'image';
             this.sourceDirty = true;
+            if (this.layers && this.layers[0]) {
+              this.layers[0].sourceImage = img;
+              this.layers[0].mediaType = 'image';
+              this.layers[0].name = file.name;
+              this.updateLayerStackUI();
+            }
             const dropOverlay = document.getElementById('drop-zone-overlay');
             if (dropOverlay) dropOverlay.classList.add('hidden');
             this.markDirty(true);
@@ -7571,7 +8400,14 @@ export class SacredGlyphEngine {
       vid.play();
       this.videoElement = vid;
       this.sourceImage = vid as any;
-      this.mediaType = 'image';
+      this.mediaType = 'video';
+      if (this.layers && this.layers[0]) {
+        this.layers[0].videoElement = vid;
+        this.layers[0].sourceImage = vid as any;
+        this.layers[0].mediaType = 'video';
+        this.layers[0].name = file.name;
+        this.updateLayerStackUI();
+      }
       const dropOverlay = document.getElementById('drop-zone-overlay');
       if (dropOverlay) dropOverlay.classList.add('hidden');
       this.markDirty(true);

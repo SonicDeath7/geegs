@@ -34,7 +34,9 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sacred Glyph — Professional ASCII & Dither Workstation</title>
-    <meta name="description" content="Professional 90s Japanese ASCII & Dithering Video/GIF Workstation with curated unique glyph sets, manual character input, 16 master presets, GIF import/export, and real-time LFO modulation." />
+    <meta name="description" content="Professional medieval & gothic ASCII art and dithering engine with 48 glyph sets, real-time video/webcam processing, and Sacred Glyph algorithms." />
+    <meta property="og:title" content="Sacred Glyph — Professional ASCII & Dither Workstation" />
+    <meta property="og:description" content="Professional medieval & gothic ASCII art and dithering engine with 48 glyph sets, real-time video/webcam processing, and Sacred Glyph algorithms." />
 
     <!-- Typography: 90s Industrial Monospace & Gothic Blackletter Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -954,11 +956,160 @@
 
       .glyph-deck-split {
         display: grid;
-        grid-template-columns: 310px 1fr;
+        grid-template-columns: 410px 1fr;
         gap: 8px;
         flex: 1;
         min-height: 0;
         overflow: hidden;
+      }
+
+      /* Layer Station & Compositing Studio */
+      .layer-station {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        background: #10120e;
+        border: 2px inset var(--chassis-dark);
+        padding: 6px 8px;
+        overflow: hidden;
+        min-height: 0;
+        justify-content: space-between;
+      }
+      body[data-theme="light"] .layer-station {
+        background: #e4e7e2;
+        border-color: #b0b5aa;
+      }
+      .layer-station-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        border-bottom: 1px solid var(--chassis-dark);
+        padding-bottom: 4px;
+      }
+      .layer-list-container {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        overflow-y: auto;
+        flex: 1;
+        min-height: 60px;
+        max-height: 115px;
+        padding-right: 2px;
+      }
+      .layer-item-card {
+        background: #181916;
+        border: 1px solid var(--chassis-dark);
+        padding: 4px 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        cursor: pointer;
+        border-radius: 2px;
+        user-select: none;
+        transition: all 0.12s ease;
+      }
+      body[data-theme="light"] .layer-item-card {
+        background: #f0f2ed;
+        border-color: #c4c8bf;
+      }
+      .layer-item-card:hover {
+        background: #23251f;
+      }
+      body[data-theme="light"] .layer-item-card:hover {
+        background: #e0e4da;
+      }
+      .layer-item-card.active {
+        border-color: var(--vfd-green);
+        background: #122116;
+        box-shadow: inset 0 0 5px var(--vfd-green-glow);
+      }
+      body[data-theme="light"] .layer-item-card.active {
+        background: #d4ebd8;
+        border-color: #108838;
+      }
+      .layer-item-card.is-hidden {
+        opacity: 0.45;
+      }
+      .layer-item-left {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        flex: 1;
+      }
+      .layer-vis-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+        padding: 0 2px;
+        color: var(--vfd-green);
+        line-height: 1;
+      }
+      .layer-vis-btn.dimmed {
+        opacity: 0.35;
+        filter: grayscale(1);
+      }
+      .layer-type-tag {
+        font-size: 9px;
+        font-weight: 800;
+        padding: 1px 4px;
+        background: #252822;
+        color: var(--led-amber);
+        border: 1px solid var(--chassis-dark);
+        border-radius: 2px;
+        letter-spacing: 0.05em;
+        font-family: var(--font-mono);
+      }
+      .layer-name-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-light);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: var(--font-tech);
+      }
+      body[data-theme="light"] .layer-name-label {
+        color: #161714;
+      }
+      .layer-item-right {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .layer-blend-badge {
+        font-size: 9px;
+        padding: 1px 4px;
+        background: #1e201b;
+        color: var(--vfd-green);
+        border: 1px solid var(--chassis-dark);
+        font-family: var(--font-mono);
+      }
+      .layer-opacity-badge {
+        font-size: 9px;
+        font-family: var(--font-mono);
+        color: var(--text-dim);
+      }
+      .layer-item-del-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+        padding: 1px 4px;
+        font-size: 11px;
+        border-radius: 2px;
+      }
+      .layer-item-del-btn:hover {
+        color: var(--led-red);
+        border-color: var(--led-red);
+      }
+      .layer-quick-bar {
+        border-top: 1px solid var(--chassis-dark);
+        padding-top: 4px;
       }
 
       .glyph-sets-container {
@@ -2152,6 +2303,34 @@
               </div>
             </div>
 
+            <!-- ==============================================================
+                 GLYPH DATABASE & MANUAL CHARACTER INPUT (RIGHT SETTINGS RACK)
+            ============================================================== -->
+            <div class="glyph-db-rack-box" style="background: rgba(0,0,0,0.3); border: 1px inset var(--chassis-dark); padding: 8px; margin: 4px 0; display: flex; flex-direction: column; gap: 6px;">
+              <div class="module-title-bar" style="margin-bottom: 2px;">
+                <span id="i18n-glyph-db-title">[БАЗА ГЛИФОВ // GLYPH SETS]</span>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <span class="vfd-label" style="font-size: 10px;">СИМВОЛОВ:</span>
+                  <span id="active-glyph-count" style="color: var(--vfd-green); font-family: var(--font-mono); font-size: 12px; font-weight: 800;">8 glyphs</span>
+                </div>
+              </div>
+
+              <!-- Category Selection Matrix -->
+              <div class="category-tabs" id="category-tabs-container"></div>
+
+              <!-- Curated Sets List (scrollable) -->
+              <div class="glyph-sets-container" id="glyph-sets-list" style="max-height: 145px; overflow-y: auto;"></div>
+
+              <!-- Manual Symbol Input -->
+              <div style="display: flex; flex-direction: column; gap: 3px; background: rgba(0,0,0,0.35); padding: 5px; border: 1px inset var(--chassis-dark);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="vfd-label" style="font-size: 10px;" id="i18n-manual-glyphs-lbl">РУЧНОЙ НАБОР СИМВОЛОВ:</span>
+                  <button type="button" id="btn-invert-glyphs" class="hw-btn" style="padding: 1px 6px; font-size: 10px;">ИНВЕРТ</button>
+                </div>
+                <input type="text" id="manual-glyph-input" class="manual-glyph-input" style="width: 100%; font-size: 13px; padding: 3px 6px; font-family: var(--font-mono);" placeholder="напр. @%#*+=-:. " />
+              </div>
+            </div>
+
             <!-- Sacred Glyph Dither Algorithm Selection -->
             <div style="display: flex; flex-direction: column; gap: 4px;">
               <span class="fader-name" id="i18n-dither-lbl">АЛГОРИТМ:</span>
@@ -2607,29 +2786,81 @@
       </div>
 
       <!-- ==============================================================
-           LOWER ENGINEERING DECKS (Request 6: Wide Glyph Database + Manual Input & Cassette Bay)
+           LOWER ENGINEERING DECKS: LAYER STACK & ANIMATION TIMELINE
       ============================================================== -->
       <footer class="workstation-lower-deck">
-        <!-- Deck 1 (Expanded, 1fr): Glyph Database & Manual Symbol Input -->
+        <!-- Deck 1 (Expanded, 1fr): Layer Selection & Animation Timeline -->
         <section class="deck-keypad-module">
           <div class="module-title-bar">
-            <span id="i18n-deck1-title">[БАЗА ГЛИФОВ &amp; ТАЙМЛАЙН ЗАПИСИ АНИМАЦИИ]</span>
+            <span id="i18n-deck1-title">[СЛОИ &amp; ТАЙМЛАЙН ЗАПИСИ АНИМАЦИИ // LAYER STACK &amp; TIMELINE]</span>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <span class="vfd-label" id="i18n-active-lbl">АКТИВНО:</span>
-              <span id="active-glyph-count" style="color: var(--vfd-green); font-family: var(--font-mono); font-size: 14px; font-weight: 800;">8 glyphs</span>
+              <span class="vfd-label">АКТИВНЫЙ СЛОЙ:</span>
+              <span id="hud-active-layer-name" style="color: var(--vfd-green); font-family: var(--font-mono); font-size: 13px; font-weight: 800;">Слой 1</span>
             </div>
           </div>
 
-          <!-- Category Selection Matrix -->
-          <div class="category-tabs" id="category-tabs-container">
-            <!-- Dynamically populated -->
-          </div>
-
-          <!-- Split: Curated Sets on Left + Timeline & Live REC on Right -->
+          <!-- Split: Layer Selection Window on Left + Animation Timeline on Right -->
           <div class="glyph-deck-split">
-            <!-- Left: Curated Sets -->
-            <div class="glyph-sets-container" id="glyph-sets-list">
-              <!-- Dynamically populated -->
+            <!-- Left: Dedicated Layer Selection, Blending & Management Station -->
+            <div class="layer-station" id="layer-station">
+              <div class="layer-station-header">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="vfd-label" id="i18n-layer-title">[СЛОИ // LAYERS]</span>
+                  <span class="hw-led active-green" id="layer-active-led"></span>
+                  <span id="layer-count-badge" class="vfd-readout-box" style="font-size: 11px; padding: 1px 6px;">1 СЛОЙ</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <button type="button" id="btn-add-layer" class="hw-btn hw-btn-green" style="padding: 3px 8px; font-size: 11px; font-weight: bold;" title="Добавить новый слой: изображение, GIF или видео">
+                    + СЛОЙ
+                  </button>
+                  <button type="button" id="btn-duplicate-layer" class="hw-btn" style="padding: 3px 6px; font-size: 11px;" title="Дублировать текущий слой">
+                    📋 ДУБЛЬ
+                  </button>
+                  <button type="button" id="btn-move-layer-up" class="hw-btn" style="padding: 3px 6px; font-size: 11px;" title="Поднять слой выше">
+                    ▲
+                  </button>
+                  <button type="button" id="btn-move-layer-down" class="hw-btn" style="padding: 3px 6px; font-size: 11px;" title="Опустить слой ниже">
+                    ▼
+                  </button>
+                  <button type="button" id="btn-delete-layer" class="hw-btn hw-btn-red" style="padding: 3px 6px; font-size: 11px;" title="Удалить выбранный слой">
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <!-- Layer Cards List (dynamically populated) -->
+              <div class="layer-list-container" id="layer-list-container">
+                <!-- Dynamically populated layers -->
+              </div>
+
+              <!-- Active Layer Quick Controls (Blend Mode & Opacity) -->
+              <div class="layer-quick-bar" id="layer-quick-bar">
+                <div style="display: flex; align-items: center; gap: 6px; width: 100%; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <span class="vfd-label" style="font-size: 10px;" id="i18n-layer-blend-lbl">НАЛОЖЕНИЕ:</span>
+                    <select id="select-layer-blend-mode" class="hardware-select" style="font-size: 11px; padding: 2px 4px;">
+                      <option value="source-over">ОБЫЧНЫЙ (NORMAL)</option>
+                      <option value="screen">ЭКРАН / СВЕТ (SCREEN)</option>
+                      <option value="multiply">УМНОЖЕНИЕ (MULTIPLY)</option>
+                      <option value="overlay">ПЕРЕКРЫТИЕ (OVERLAY)</option>
+                      <option value="color-dodge">ОСВЕТЛЕНИЕ (COLOR DODGE)</option>
+                      <option value="color-burn">ЗАТЕМНЕНИЕ (COLOR BURN)</option>
+                      <option value="darken">ЗАТЕМНЕНИЕ (DARKEN)</option>
+                      <option value="lighten">СВЕТЛЕЕ (LIGHTEN)</option>
+                      <option value="hard-light">ЖЕСТКИЙ СВЕТ (HARD LIGHT)</option>
+                      <option value="soft-light">МЯГКИЙ СВЕТ (SOFT LIGHT)</option>
+                      <option value="difference">РАЗНИЦА (DIFFERENCE)</option>
+                      <option value="exclusion">ИСКЛЮЧЕНИЕ (EXCLUSION)</option>
+                      <option value="luminosity">СВЕТИМОСТЬ (LUMINOSITY)</option>
+                    </select>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <span class="vfd-label" style="font-size: 10px;" id="i18n-layer-opacity-lbl">НЕПРОЗРАЧНОСТЬ:</span>
+                    <span class="vfd-readout-box" id="val-layer-opacity" style="font-size: 10px; min-width: 32px; text-align: center;">100%</span>
+                    <input type="range" id="slider-layer-opacity" min="0" max="100" step="5" value="100" style="width: 75px;" />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Right: Dedicated Animation Timeline & Live REC Studio -->
@@ -2741,8 +2972,9 @@
       </footer>
     </div>
 
-    <!-- Hidden File Input for Ingest -->
+    <!-- Hidden File Input for Ingest & Multi-Layer Creation -->
     <input type="file" id="file-input" accept="image/*,image/gif,video/mp4,video/webm" style="display: none;" />
+    <input type="file" id="layer-file-input" accept="image/*,image/gif,video/mp4,video/webm" style="display: none;" />
 
     <!-- Export Studio Modal (3 Download Formats) -->
     <div class="modal-backdrop" id="export-modal">
